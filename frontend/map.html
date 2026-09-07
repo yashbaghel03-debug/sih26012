@@ -11,17 +11,27 @@
   <aside class="panel">
     <div class="eyebrow">SIH 2026 · PS 26012</div>
     <h1>India WebGIS</h1>
-    <p>Real geographic basemap + deterministic zoom-dependent ALU grid.</p>
+    <p>Navigate the map first. Only the part visible in the browser window is gridded.</p>
     <div id="zoomInfo">Zoom —</div>
     <div id="levelInfo">Level —</div>
-    <div class="levels">
-      <span>1 km</span><span>100 m</span><span>10 m</span><span>1 m</span><span>0.1 m²</span>
+    <div class="levels"><span>500 km</span><span>250 km</span><span>100 km</span><span>50 km</span><span>10 km</span><span>1 km</span><span>100 m</span><span>10 m</span><span>1 m</span><span>0.1 m²</span></div>
+    <div class="search-box">
+      <div class="eyebrow">Search session</div>
+      <p class="small">Move and zoom to the exact area you want. Edge cells are not discarded.</p>
+      <button id="finishSearch" class="primary">Finish search & number cells</button>
+      <button id="clearSearch" class="secondary">Clear numbering</button>
+      <div id="searchStatus" class="status">No search finished yet.</div>
     </div>
-    <p class="note">The finest backend unit is 0.1 m × 1 m = 0.1 m². It is a logical indexing unit, not a claim of survey accuracy.</p>
+    <p class="note">At the final level, 0.1 m² is represented as 0.1 m × 1 m. Numbering is local to the finished viewport and is assigned row-by-row from the north-west, including partially visible edge cells first.</p>
     <a href="index.html">← Dashboard</a>
   </aside>
   <div id="map"></div>
   <div id="cellPopup" class="popup"></div>
+  <section id="numberPanel" class="number-panel hidden">
+    <div class="number-header"><strong>0.1 m² search numbering</strong><button id="closeNumbers">×</button></div>
+    <div id="numberSummary" class="number-summary"></div>
+    <div id="numberList" class="number-list"></div>
+  </section>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="map.js"></script>
 </body>
