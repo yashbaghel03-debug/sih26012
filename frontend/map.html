@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SIH 26012 — India WebGIS</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="map.css">
+  <link rel="stylesheet" href="map.css?v=20260907d">
 </head>
 <body>
   <div id="map"></div>
@@ -15,12 +15,12 @@
       <input id="aluSearch" type="search" placeholder="Enter ALU code e.g. A3QVPL-0A-0B" aria-label="Search ALU">
       <button type="submit">Search</button>
     </form>
-    <div id="searchHint" class="search-hint">6-character root + 2-character base36 hierarchy segments. Hyphens show each refinement level.</div>
+    <div id="searchHint" class="search-hint">6-character root (100 km²) + up to five 2-character base36 refinement segments.</div>
   </div>
   <div class="map-actions"><a href="admin.html">Admin</a></div>
   <div id="cellTooltip" class="cell-tooltip hidden"></div>
   <div id="searchResult" class="search-result hidden"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="map.js"></script>
+  <script src="map.js?v=20260907d"></script>
 </body>
 </html>
