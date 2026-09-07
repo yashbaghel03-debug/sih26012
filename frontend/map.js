@@ -54,15 +54,13 @@ function paint(){
   const size=map.getSize(),d=resizeCanvas(),z=map.getZoom(),o=map.getPixelOrigin(),v=visibleMerc(),level=activeLevel(),unit=level.side;
   ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,Math.max(1,Math.floor(size.x*d)),Math.max(1,Math.floor(size.y*d)));
   if(!indiaGeometry.length)return;
-  const px=unit*worldPx(z)/WORLD;
-  let stride=Math.max(1,Math.ceil(2/Math.max(px,.0001)));
+  const stride=1;
   const minX=Math.floor((v.minX-unit*2)/unit),maxX=Math.ceil((v.maxX+unit*2)/unit),minY=Math.floor((v.minY-unit*2)/unit),maxY=Math.ceil((v.maxY+unit*2)/unit);
-  while((maxX-minX)/stride>1200||(maxY-minY)/stride>1200)stride*=2;
   const boundaryZoom=Math.round(z*2)/2;
   const scale=worldPx(z)/worldPx(boundaryZoom),bp=buildBoundaryPath(boundaryZoom);
   ctx.setTransform(d*scale,0,0,d*scale,-o.x*d,-o.y*d);
   ctx.save();ctx.clip(bp,'evenodd');
-  ctx.strokeStyle='rgba(31,78,121,.50)';ctx.lineWidth=Math.max(.7,1/Math.max(scale,1));ctx.beginPath();
+  ctx.strokeStyle='#000';ctx.lineWidth=Math.max(1,1/Math.max(scale,1));ctx.beginPath();
   for(let gx=minX;gx<=maxX;gx+=stride){const x=gx*unit,w=worldPx(z),sx=(x/WORLD+.5)*w;ctx.moveTo(sx/(scale),0);ctx.lineTo(sx/(scale),size.y/(scale))}
   for(let gy=minY;gy<=maxY;gy+=stride){const y=gy*unit,w=worldPx(z),sy=(.5-y/WORLD)*w;ctx.moveTo(0,sy/(scale));ctx.lineTo(size.x/(scale),sy/(scale))}
   ctx.stroke();ctx.restore();
