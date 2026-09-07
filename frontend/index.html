@@ -3,10 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="refresh" content="0; url=map.html">
   <title>SIH 26012 — India WebGIS</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="map.css">
 </head>
 <body>
-  <p>Opening India WebGIS… <a href="map.html">Continue</a></p>
+  <div id="map"></div>
+  <div class="map-search">
+    <div class="search-title">India WebGIS</div>
+    <form id="aluSearchForm" class="search-form" autocomplete="off">
+      <input id="aluSearch" type="search" placeholder="Enter ALU code e.g. A3QVPL-0A-0B" aria-label="Search ALU">
+      <button type="submit">Search</button>
+    </form>
+    <div id="searchHint" class="search-hint">6-character root + 2-character base36 hierarchy segments. Hyphens show each refinement level.</div>
+  </div>
+  <div class="map-actions"><a href="admin.html">Admin</a></div>
+  <div id="cellTooltip" class="cell-tooltip hidden"></div>
+  <div id="searchResult" class="search-result hidden"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="map.js"></script>
 </body>
 </html>
