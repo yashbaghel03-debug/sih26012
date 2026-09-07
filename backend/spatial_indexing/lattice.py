@@ -1,17 +1,17 @@
 """Deterministic hierarchical ALU spatial indexing for India WebGIS.
 
 Hierarchy:
-    1 km² -> 0.01 km² -> 0.0001 km² -> 1 m² -> 0.1 m².
+    100 km² -> 1 km² -> 0.01 km² -> 0.0001 km² -> 1 m² -> 0.1 m².
 
-The first three refinements are true 10x10 square subdivisions. The final
+The first four refinements are true 10x10 square subdivisions. The final
 0.1 m² terminal is represented by ten deterministic equal-area square
 footprints because ten congruent irrational-sided squares cannot form a
-regular gapless 1 m² square tiling. The terminal footprints are therefore
-logical terminal sampling cells, not a claim of a Euclidean tiling.
+regular gapless 1 m² square tiling. The terminal footprints are logical
+terminal sampling cells.
 
 ALU IDs are opaque hierarchical strings. The root is 6 characters and every
-refinement adds a 2-character base36 token. Each token contains at least one
-letter and one digit.
+refinement adds one 2-character base36 token. Each token contains a letter
+and a number.
 """
 from __future__ import annotations
 
@@ -23,18 +23,21 @@ BASE36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 DIGITS = "0123456789"
 
-LEVEL_ORDER = ("1km2", "0.01km2", "0.0001km2", "0.000001km2", "0.1m2")
+LEVEL_ORDER = ("100km2", "1km2", "0.01km2", "0.0001km2", "0.000001km2", "0.1m2")
 LEVEL_SPECS = {
-    "1km2": {"side_m": 1000.0, "children": 100, "kind": "square10x10"},
+    "100km2": {"side_m": 10_000.0, "children": 100, "kind": "square10x10"},
+    "1km2": {"side_m": 1_000.0, "children": 100, "kind": "square10x10"},
     "0.01km2": {"side_m": 100.0, "children": 100, "kind": "square10x10"},
     "0.0001km2": {"side_m": 10.0, "children": 100, "kind": "square10x10"},
     "0.000001km2": {"side_m": 1.0, "children": 10, "kind": "terminal10"},
     "0.1m2": {"side_m": sqrt(0.1), "children": 0, "kind": "terminal"},
 }
 
+# Root cells are 10 km x 10 km. This keeps the initial logical coverage
+# roughly 1/100 of the former 1 km root count.
 ROOT_ORIGIN_X = 7_570_000.0
 ROOT_ORIGIN_Y = 700_000.0
-ROOT_COLS = 4_000
+ROOT_COLS = 400
 
 
 def _b36(n: int, width: int) -> str:
@@ -46,7 +49,7 @@ def _b36(n: int, width: int) -> str:
     while n:
         n, r = divmod(n, 36)
         out.append(BASE36[r])
-    return ("0" * max(0, width - len(out)) + "".join(reversed(out)))
+    return "0" * max(0, width - len(out)) + "".join(reversed(out))
 
 
 def _from_b36(value: str) -> int:
@@ -68,12 +71,11 @@ CHILD_TOKENS = tuple(
 )[:100]
 TOKEN_TO_INDEX = {token: i for i, token in enumerate(CHILD_TOKENS)}
 
-# Ten deterministic terminal footprints inside the 1 m² parent.
 TERMINAL_PLACEMENTS = (
     (0.000, 0.000), (0.340, 0.000), (0.680, 0.000),
     (0.000, 0.340), (0.340, 0.340), (0.680, 0.340),
     (0.000, 0.680), (0.340, 0.680), (0.680, 0.680),
-    (0.340, 0.340),
+    (0.315, 0.315),
 )
 
 
@@ -155,12 +157,12 @@ class Cell:
         return self.root_iy * ROOT_COLS + self.root_ix
 
     @property
-    def local_1km_offset(self) -> tuple[float, float]:
-        if self.level == "1km2":
+    def local_root_offset(self) -> tuple[float, float]:
+        if self.level == "100km2":
             return 0.0, 0.0
         ox = oy = 0.0
-        side = 1000.0
-        for depth, index in enumerate(self.path[:3]):
+        side = 10_000.0
+        for index in self.path[:4]:
             child_side = side / 10.0
             ox += (index % 10) * child_side
             oy += (index // 10) * child_side
@@ -169,10 +171,10 @@ class Cell:
 
     @property
     def mercator_bounds(self) -> tuple[float, float, float, float]:
-        root_x = ROOT_ORIGIN_X + self.root_ix * 1000.0
-        root_y = ROOT_ORIGIN_Y + self.root_iy * 1000.0
+        root_x = ROOT_ORIGIN_X + self.root_ix * 10_000.0
+        root_y = ROOT_ORIGIN_Y + self.root_iy * 10_000.0
         if self.level != "0.1m2":
-            ox, oy = self.local_1km_offset
+            ox, oy = self.local_root_offset
             side = self.width_m
             return root_x + ox, root_y + oy, root_x + ox + side, root_y + oy + side
         parent = Cell("0.000001km2", self.root_ix, self.root_iy, self.path[:-1])
@@ -215,4 +217,6 @@ def parent(cell: Cell) -> Cell | None:
 
 
 def ancestor_1km(cell: Cell) -> Cell:
-    return Cell("1km2", cell.root_ix, cell.root_iy, ())
+    if cell.level == "100km2":
+        raise ValueError("100 km² root has no 1 km² descendant ancestor")
+    return Cell("1km2", cell.root_ix, cell.root_iy, (cell.path[0],))
