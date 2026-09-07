@@ -42,6 +42,10 @@ const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/service
 const physical=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,maxNativeZoom:17,attribution:'© OpenTopoMap contributors'});
 street.addTo(map);
 L.control.layers({'Street / GPS':street,'Physical / Terrain':physical,'Satellite':satellite},{},{collapsed:false,position:'topright'}).addTo(map);
+const locationLayer=L.layerGroup().addTo(map),locationIcon=L.divIcon({className:'current-location-icon',html:'<span></span>',iconSize:[26,26],iconAnchor:[13,13]});
+map.on('locationfound',event=>{locationLayer.clearLayers();L.circle(event.latlng,{radius:event.accuracy,color:'#2563eb',weight:1,fillColor:'#60a5fa',fillOpacity:.16,interactive:false}).addTo(locationLayer);L.marker(event.latlng,{icon:locationIcon,keyboard:false,interactive:false,zIndexOffset:1000}).addTo(locationLayer);map.setView(event.latlng,Math.max(map.getZoom(),14),{animate:true});});
+map.on('locationerror',()=>{const hint=document.getElementById('searchHint');if(hint)hint.textContent='Location permission was unavailable. You can continue using the map normally.';});
+map.locate({setView:false,watch:false,enableHighAccuracy:true,timeout:10000});
 const boundaryLayer=L.geoJSON(null,{style:{weight:2,color:'#111827',fill:false,opacity:.9},interactive:false}).addTo(map),highlightLayer=L.layerGroup().addTo(map);
 const canvas=L.DomUtil.create('canvas','alu-grid-canvas');canvas.style.position='absolute';canvas.style.left='0';canvas.style.top='0';canvas.style.pointerEvents='none';canvas.style.zIndex='450';map.getPane('overlayPane').appendChild(canvas);
 const tooltip=document.getElementById('cellTooltip'),searchInput=document.getElementById('aluSearch'),searchResult=document.getElementById('searchResult'),searchHint=document.getElementById('searchHint');
