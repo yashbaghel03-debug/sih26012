@@ -2,8 +2,10 @@
 (() => {
 'use strict';
 const API_BASE=new URLSearchParams(location.search).get('api')||'http://localhost:8000';
-const INDIA_BOUNDS=[[6.4,67.8],[37.7,97.7]];
-const INDIA_CACHE='sih26012-india-boundary-v3';
+// Broad initial viewport; the actual national boundary comes from the official
+// Government of India India_Boundary GIS source and controls grid clipping.
+const INDIA_VIEW_BOUNDS=[[6.0,66.0],[38.5,98.5]];
+const INDIA_CACHE='sih26012-official-india-boundary-v4';
 const R=6378137,WORLD=2*Math.PI*R,ROOT_X=7570000,ROOT_Y=700000,ROOT_COLS=400;
 const BASE36='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ',LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ',DIGITS='0123456789';
 const LEVELS=[
@@ -27,19 +29,19 @@ function worldPx(z){return 256*2**z}
 function screen(mx,my,z,o){const w=worldPx(z);return[(mx/WORLD+.5)*w-o.x,(.5-my/WORLD)*w-o.y]}
 function pointRing(lat,lon,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const x1=ring[i][0],y1=ring[i][1],x2=ring[j][0],y2=ring[j][1],hit=((y1>lat)!=(y2>lat))&&(lon<(x2-x1)*(lat-y1)/(y2-y1)+x1);if(hit)inside=!inside}return inside}
 function contains(lat,lon,f){const g=f.geometry;if(!g)return false;const poly=p=>pointRing(lat,lon,p[0])&&p.slice(1).every(r=>!pointRing(lat,lon,r));return g.type==='Polygon'?poly(g.coordinates):g.type==='MultiPolygon'?g.coordinates.some(poly):false}
-function inIndia(lat,lon){if(lat<INDIA_BOUNDS[0][0]||lat>INDIA_BOUNDS[1][0]||lon<INDIA_BOUNDS[0][1]||lon>INDIA_BOUNDS[1][1])return false;if(!indiaGeometry.length)return false;return indiaGeometry.some(f=>contains(lat,lon,f))}
+function inIndia(lat,lon){if(lat<INDIA_VIEW_BOUNDS[0][0]||lat>INDIA_VIEW_BOUNDS[1][0]||lon<INDIA_VIEW_BOUNDS[0][1]||lon>INDIA_VIEW_BOUNDS[1][1])return false;if(!indiaGeometry.length)return false;return indiaGeometry.some(f=>contains(lat,lon,f))}
 function pathRing(ctx,ring,z,o){if(!ring.length)return;let p=screen(...merc(ring[0][1],ring[0][0]),z,o);ctx.moveTo(p[0],p[1]);for(let i=1;i<ring.length;i++){p=screen(...merc(ring[i][1],ring[i][0]),z,o);ctx.lineTo(p[0],p[1])}ctx.closePath()}
 function clipIndia(ctx,z,o){if(!indiaGeometry.length)return false;ctx.beginPath();for(const f of indiaGeometry){const g=f.geometry;if(g.type==='Polygon')for(const r of g.coordinates)pathRing(ctx,r,z,o);else if(g.type==='MultiPolygon')for(const p of g.coordinates)for(const r of p)pathRing(ctx,r,z,o)}ctx.clip('evenodd');return true}
 function activeLevel(){let l=LEVELS[0];for(const x of LEVELS)if(map.getZoom()>=x.zoom)l=x;return l}
 function visibleMerc(){const b=map.getBounds(),a=merc(b.getSouth(),b.getWest()),c=merc(b.getNorth(),b.getEast());return{minX:Math.min(a[0],c[0]),maxX:Math.max(a[0],c[0]),minY:Math.min(a[1],c[1]),maxY:Math.max(a[1],c[1])}}
 function cellAt(lat,lon){const level=activeLevel(),[mx,my]=merc(lat,lon),ix=Math.floor((mx-ROOT_X)/10000),iy=Math.floor((my-ROOT_Y)/10000);if(ix<0||iy<0||ix>=ROOT_COLS||!inIndia(lat,lon))return null;let lx=mx-(ROOT_X+ix*10000),ly=my-(ROOT_Y+iy*10000),side=10000,path=[];for(let d=0;d<level.depth;d++){if(d<4){const s=side/10,dx=Math.max(0,Math.min(9,Math.floor(lx/s))),dy=Math.max(0,Math.min(9,Math.floor(ly/s)));path.push(dy*10+dx);lx-=dx*s;ly-=dy*s;side=s}else{const t=Math.sqrt(.1);let hit=-1;for(let k=0;k<10;k++){const p=TERMINAL[k];if(lx>=p[0]&&lx<=p[0]+t&&ly>=p[1]&&ly<=p[1]+t){hit=k;break}}if(hit<0)return null;path.push(hit)}}return{ix,iy,path,code:[rootCode(ix,iy),...path.map(i=>TOKENS[i])].join('-'),level}}
 function cellMercator(ix,iy,path){let x=ROOT_X+ix*10000,y=ROOT_Y+iy*10000,side=10000;for(let d=0;d<path.length;d++){const k=path[d];if(d<4){const s=side/10;x+=(k%10)*s;y+=Math.floor(k/10)*s;side=s}else{const p=TERMINAL[k];x+=p[0];y+=p[1];side=Math.sqrt(.1)}}return{x1:x,y1:y,x2:x+side,y2:y+side,side,area:side*side}}
-const map=L.map('map',{minZoom:5,maxZoom:29,zoomControl:true,maxBounds:INDIA_BOUNDS,maxBoundsViscosity:.95,zoomAnimation:false,fadeAnimation:false}).fitBounds(INDIA_BOUNDS,{animate:false,padding:[8,8]});
+const map=L.map('map',{minZoom:5,maxZoom:29,zoomControl:true,maxBounds:INDIA_VIEW_BOUNDS,maxBoundsViscosity:.95,zoomAnimation:false,fadeAnimation:false}).fitBounds(INDIA_VIEW_BOUNDS,{animate:false,padding:[8,8]});
 const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:29,maxNativeZoom:19,attribution:'© OpenStreetMap contributors'});
 const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:29,maxNativeZoom:19,attribution:'Tiles © Esri'});
 const physical=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,maxNativeZoom:17,attribution:'© OpenTopoMap contributors'});
 street.addTo(map);
-L.control.layers({'Street / GPS':street,'Physical / Terrain':physical,'Satellite':satellite},{} ,{collapsed:false,position:'topright'}).addTo(map);
+L.control.layers({'Street / GPS':street,'Physical / Terrain':physical,'Satellite':satellite},{},{collapsed:false,position:'topright'}).addTo(map);
 const boundaryLayer=L.geoJSON(null,{style:{weight:2,color:'#111827',fill:false,opacity:.9},interactive:false}).addTo(map),highlightLayer=L.layerGroup().addTo(map);
 const canvas=L.DomUtil.create('canvas','alu-grid-canvas');canvas.style.position='absolute';canvas.style.left='0';canvas.style.top='0';canvas.style.pointerEvents='none';canvas.style.zIndex='450';map.getPane('overlayPane').appendChild(canvas);
 const tooltip=document.getElementById('cellTooltip'),searchInput=document.getElementById('aluSearch'),searchResult=document.getElementById('searchResult'),searchHint=document.getElementById('searchHint');
@@ -51,7 +53,7 @@ function paint(){
   const size=map.getSize(),d=resizeCanvas(),ctx=canvas.getContext('2d');
   ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,size.x,size.y);
   if(!indiaGeometry.length)return;
-  const z=map.getZoom(),o=map.getPixelOrigin(),v=visibleMerc(),level=activeLevel(),unit=level.depth<5?level.side:level.side;
+  const z=map.getZoom(),o=map.getPixelOrigin(),v=visibleMerc(),level=activeLevel(),unit=level.side;
   const px=unit*worldPx(z)/WORLD;
   const stride=Math.max(1,Math.ceil(0.85/Math.max(px,.0001)));
   const minX=Math.floor((v.minX-unit*2)/unit),maxX=Math.ceil((v.maxX+unit*2)/unit),minY=Math.floor((v.minY-unit*2)/unit),maxY=Math.ceil((v.maxY+unit*2)/unit);
@@ -73,10 +75,21 @@ function parseALU(v){const p=v.trim().toUpperCase().split('-').filter(Boolean);i
 document.getElementById('aluSearchForm')?.addEventListener('submit',e=>{e.preventDefault();try{const t=parseALU(searchInput.value),c=cellMercator(t.ix,t.iy,t.path),a=inv(c.x1,c.y1),b=inv(c.x2,c.y2),ll=[[a[0],a[1]],[b[0],b[1]]];highlightLayer.clearLayers();const r=L.rectangle(ll,{weight:4,color:'#ef4444',fill:false,dashArray:'8 6',interactive:false}).addTo(highlightLayer);searchResult.classList.remove('hidden');searchResult.innerHTML='<b>'+t.code+'</b><br>Located ALU cell · click the highlighted cell to open details';map.flyToBounds(r.getBounds().pad(.55),{duration:.9,maxZoom:29})}catch(err){searchHint.textContent=err.message||'Invalid ALU code'}});
 async function fetchBoundary(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('boundary '+r.status);const geo=await r.json();if(geo?.type==='Feature')return{type:'FeatureCollection',features:[geo]};if(!geo?.features?.length)throw Error('India boundary is empty');return geo}
 async function loadBoundaries(){
-  if(loadCachedBoundary()){searchHint.textContent='Grid is always visible and clipped strictly to India.';schedule()}
-  const sources=[API_BASE+'/api/v1/spatial/india-boundaries','https://raw.githubusercontent.com/johan/world.geo.json/master/countries/IND.geo.json'];
-  for(const url of sources){try{const geo=await fetchBoundary(url);if(useBoundary(geo)){try{localStorage.setItem(INDIA_CACHE,JSON.stringify(geo))}catch(_){ }searchHint.textContent='Grid is always visible and clipped strictly to India.';schedule();return}}catch(err){console.warn('India boundary source failed',url,err)}}
-  searchHint.textContent=indiaGeometry.length?'Grid is clipped to the cached India boundary.':'India boundary could not be loaded; map remains available but grid is paused.';schedule()
+  if(loadCachedBoundary()){searchHint.textContent='Indian political boundary: Survey of India / Government of India source.';schedule()}
+  const url=API_BASE+'/api/v1/spatial/india-boundaries';
+  try{
+    const geo=await fetchBoundary(url);
+    if(useBoundary(geo)){
+      try{localStorage.setItem(INDIA_CACHE,JSON.stringify(geo))}catch(_){ }
+      searchHint.textContent='Indian political boundary: Survey of India / Government of India source.';
+      schedule();
+      return;
+    }
+  }catch(err){console.warn('Official India boundary source failed',url,err)}
+  searchHint.textContent=indiaGeometry.length?'Using cached official India boundary.':'Official India boundary could not be loaded; grid is withheld to avoid displaying it outside India.';
+  schedule();
 }
-loadBoundaries();loadCachedBoundary();schedule();
+loadBoundaries();
+loadCachedBoundary();
+schedule();
 })();
