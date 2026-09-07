@@ -1,7 +1,6 @@
 /* Bootstrap the India WebGIS with the LGD-derived national political boundary.
- * Keep the existing map visible immediately, then replace its clipping geometry
- * with the national extent that includes the J&K/Ladakh depiction requested by
- * the project (including the POK and Aksai Chin extent).
+ * Keep the existing map renderer unchanged while supplying it the broader
+ * national clipping geometry that includes the requested J&K/Ladakh extent.
  */
 (() => {
   'use strict';
@@ -45,39 +44,30 @@
   }
 
   let cached = null;
-  try { cached = normalize(JSON.parse(localStorage.getItem(cacheKey) || 'null')); } catch (_) {}
+  let cachedIsNational = false;
+  try {
+    cached = normalize(JSON.parse(localStorage.getItem(cacheKey) || 'null'));
+    cachedIsNational = !!cached;
+  } catch (_) {}
   if (!cached) {
     try { cached = normalize(JSON.parse(localStorage.getItem(legacyKey) || 'null')); } catch (_) {}
   }
 
-  // Never make the map wait for the large national polygon when a usable
-  // previous boundary is already cached. The national polygon is fetched next.
+  // A cached boundary lets the map and its grid paint immediately.
   if (cached) {
     install(cached);
     loadMap();
   }
 
   (async () => {
-    // Prefer the local FastAPI boundary for immediate first paint when there is
-    // no cache, then replace it with the broader national boundary in the
-    // background. This keeps the map responsive while restoring the claimed extent.
-    if (!cached) {
-      try {
-        const geo = await getJson(apiBoundary);
-        if (geo) {
-          install(geo);
-          loadMap();
-          cached = geo;
-        }
-      } catch (error) {
-        console.warn('Fallback India boundary unavailable', error);
-      }
-    }
-
+    // Refresh/obtain the broader national polygon. When there is no cache,
+    // wait for this authoritative-source-derived geometry before starting the
+    // renderer so POK/Aksai Chin are included in the first map state.
     try {
       const geo = await getJson(nationalBoundary);
       if (geo) {
         try { localStorage.setItem(cacheKey, JSON.stringify(geo)); } catch (_) {}
+        if (!cached) loadMap();
         install(geo);
         return;
       }
@@ -86,7 +76,19 @@
     }
 
     if (!cached) {
+      try {
+        const geo = await getJson(apiBoundary);
+        if (geo) {
+          install(geo);
+          loadMap();
+          return;
+        }
+      } catch (error) {
+        console.warn('Fallback India boundary unavailable', error);
+      }
       document.getElementById('searchHint').textContent = 'India boundary could not be loaded. Start FastAPI/PostGIS or restore network access.';
+    } else if (!cachedIsNational) {
+      document.getElementById('searchHint').textContent = 'Using cached India boundary while the national boundary is unavailable.';
     }
   })();
 })();
