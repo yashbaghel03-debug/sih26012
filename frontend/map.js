@@ -3,6 +3,7 @@
 'use strict';
 const API_BASE=new URLSearchParams(location.search).get('api')||'http://localhost:8000';
 const INDIA_BOUNDS=[[6.4,67.8],[37.7,97.7]];
+const INDIA_CACHE='sih26012-india-boundary-v3';
 const R=6378137,WORLD=2*Math.PI*R,ROOT_X=7570000,ROOT_Y=700000,ROOT_COLS=400;
 const BASE36='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ',LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ',DIGITS='0123456789';
 const LEVELS=[
@@ -39,6 +40,8 @@ const boundaryLayer=L.geoJSON(null,{style:{weight:2,color:'#111827',fill:false,o
 const canvas=L.DomUtil.create('canvas','alu-grid-canvas');canvas.style.position='absolute';canvas.style.left='0';canvas.style.top='0';canvas.style.pointerEvents='none';canvas.style.zIndex='450';map.getPane('overlayPane').appendChild(canvas);
 const tooltip=document.getElementById('cellTooltip'),searchInput=document.getElementById('aluSearch'),searchResult=document.getElementById('searchResult'),searchHint=document.getElementById('searchHint');
 let indiaGeometry=[],metaCache=new Map(),hoverToken=0,frame=0;
+function useBoundary(geo){if(!geo?.features?.length)return false;indiaGeometry=geo.features;boundaryLayer.clearLayers();boundaryLayer.addData(geo);return true}
+function loadCachedBoundary(){try{const geo=JSON.parse(localStorage.getItem(INDIA_CACHE)||'null');return useBoundary(geo)}catch(_){return false}}
 function resizeCanvas(){const s=map.getSize(),d=Math.min(devicePixelRatio||1,2);canvas.width=Math.max(1,Math.floor(s.x*d));canvas.height=Math.max(1,Math.floor(s.y*d));canvas.style.width=s.x+'px';canvas.style.height=s.y+'px';return d}
 function paint(){const size=map.getSize(),d=resizeCanvas(),ctx=canvas.getContext('2d');ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,size.x,size.y);if(!indiaGeometry.length)return;const z=map.getZoom(),o=map.getPixelOrigin(),v=visibleMerc(),level=activeLevel(),unit=level.depth<5?level.side:1,pad=2;let minX=Math.floor((v.minX-unit*pad)/unit),maxX=Math.ceil((v.maxX+unit*pad)/unit),minY=Math.floor((v.minY-unit*pad)/unit),maxY=Math.ceil((v.maxY+unit*pad)/unit);
   ctx.save();
@@ -60,6 +63,31 @@ async function hover(e){const h=cellAt(e.latlng.lat,e.latlng.lng);if(!h){tooltip
 map.on('mousemove',hover);map.on('mouseout',()=>{hoverToken++;tooltip.classList.add('hidden')});
 function parseALU(v){const p=v.trim().toUpperCase().split('-').filter(Boolean);if(p.length<1||p.length>6)throw Error('Enter a 6-character root plus up to five 2-character hierarchy segments');const r=rootFromCode(p[0]),path=p.slice(1).map((t,i)=>{if(!TOKEN_TO_INDEX.has(t)||!/^[A-Z0-9]{2}$/.test(t)||!/[A-Z]/.test(t)||!/[0-9]/.test(t))throw Error('Invalid 2-character mixed base36 hierarchy segment');const n=TOKEN_TO_INDEX.get(t);if(i===4&&n>=10)throw Error('Final 0.1 m² refinement has ten terminal children');return n});return{ix:r.ix,iy:r.iy,path,code:p.join('-')}}
 document.getElementById('aluSearchForm')?.addEventListener('submit',e=>{e.preventDefault();try{const t=parseALU(searchInput.value),c=cellMercator(t.ix,t.iy,t.path),a=inv(c.x1,c.y1),b=inv(c.x2,c.y2),ll=[[a[0],a[1]],[b[0],b[1]]];highlightLayer.clearLayers();const r=L.rectangle(ll,{weight:4,color:'#ef4444',fill:false,dashArray:'8 6',interactive:false}).addTo(highlightLayer);searchResult.classList.remove('hidden');searchResult.innerHTML='<b>'+t.code+'</b><br>Located ALU cell';map.flyToBounds(r.getBounds().pad(.55),{duration:.9,maxZoom:29})}catch(err){searchHint.textContent=err.message||'Invalid ALU code'}});
-async function loadBoundaries(){try{const r=await fetch(API_BASE+'/api/v1/spatial/india-boundaries',{cache:'no-store'});if(!r.ok)throw Error('boundary '+r.status);const geo=await r.json();if(!geo?.features?.length)throw Error('India boundary is empty');indiaGeometry=geo.features;boundaryLayer.clearLayers();boundaryLayer.addData(geo);searchHint.textContent='Grid is clipped strictly to India.';schedule()}catch(err){console.error(err);searchHint.textContent='India boundary unavailable — map is still loaded, but grid lines are withheld until the boundary is available.';schedule()}}
-loadBoundaries();schedule();
+async function fetchBoundary(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('boundary '+r.status);const geo=await r.json();if(!geo?.features?.length)throw Error('India boundary is empty');return geo}
+async function loadBoundaries(){
+  if(loadCachedBoundary()){
+    searchHint.textContent='Grid is always visible and clipped strictly to India.';
+    schedule();
+  }
+  const sources=[
+    API_BASE+'/api/v1/spatial/india-boundaries',
+    'https://raw.githubusercontent.com/johan/world.geo.json/master/countries/IND.geo.json'
+  ];
+  for(const url of sources){
+    try{
+      const geo=await fetchBoundary(url);
+      if(useBoundary(geo)){
+        try{localStorage.setItem(INDIA_CACHE,JSON.stringify(geo))}catch(_){ }
+        searchHint.textContent='Grid is always visible and clipped strictly to India.';
+        schedule();
+        return;
+      }
+    }catch(err){console.warn('India boundary source failed',url,err)}
+  }
+  searchHint.textContent=indiaGeometry.length?'Grid is clipped to the cached India boundary.':'India boundary could not be loaded; grid is paused rather than drawing over other countries.';
+  schedule();
+}
+loadBoundaries();
+loadCachedBoundary();
+schedule();
 })();
