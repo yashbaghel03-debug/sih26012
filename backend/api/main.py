@@ -14,7 +14,7 @@ from ..spatial_indexing.lattice import LEVEL_ORDER, LEVEL_SPECS, Cell, ancestor_
 
 MOCK_PORTAL_URL = os.environ.get("MOCK_PORTAL_URL", "http://localhost:8001")
 POSTGIS_DSN = os.environ.get("POSTGIS_DSN", "dbname=sih26012 user=sih password=sih host=localhost port=5432")
-app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.0.0", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS.")
+app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.1.0", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS.")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:5173"], allow_credentials=True, allow_methods=["GET", "POST"], allow_headers=["*"])
 
 @lru_cache(maxsize=64)
@@ -108,8 +108,10 @@ def cell_info(alu_code: str):
                 """WITH p AS (
                        SELECT ST_Transform(ST_SetSRID(ST_MakePoint(%s,%s),3857),4326) AS geom
                    )
-                   SELECT parcel_id,
-                          COALESCE(properties->>'ulpin', properties->>'ULPIN', properties->>'ULPIN_NO') AS ulpin
+                   SELECT parcel_id, state_code, district_code, village_code,
+                          properties,
+                          ST_X(ST_Centroid(geom)) AS lon,
+                          ST_Y(ST_Centroid(geom)) AS lat
                    FROM cadastral_parcels, p
                    WHERE ST_Intersects(cadastral_parcels.geom, p.geom)
                    ORDER BY id
@@ -119,14 +121,53 @@ def cell_info(alu_code: str):
             row = cur.fetchone()
     except Exception:
         row = None
+
+    props = row[4] if row and isinstance(row[4], dict) else {}
+    common = {}
+    aliases = {
+        "owner": ("owner", "owner_name", "khatedar", "patta_holder", "holder_name"),
+        "land_use": ("land_use", "landuse", "use", "usage"),
+        "land_type": ("land_type", "landtype", "property_type"),
+        "area_m2": ("area_m2", "area_sq_m", "area", "parcel_area"),
+        "registration_no": ("registration_no", "reg_no", "registration"),
+        "deed_type": ("deed_type", "deed"),
+        "registration_date": ("registration_date", "registered_on"),
+        "encumbrance": ("encumbrance", "encumbrances"),
+        "litigation": ("litigation", "case_status"),
+        "building_permission": ("building_permission", "building_permit", "permission_no"),
+        "occupancy": ("occupancy", "occupancy_certificate"),
+        "property_tax": ("property_tax", "tax_status", "tax_paid"),
+        "tax_id": ("tax_id", "pid", "property_id"),
+        "zone": ("zone", "land_zone", "zoning"),
+        "infrastructure": ("infrastructure",),
+        "utilities": ("utilities",),
+        "environmental_zone": ("environmental_zone", "eco_zone"),
+        "restriction_zone": ("restriction_zone", "restriction"),
+        "market_value": ("market_value", "circle_rate"),
+    }
+    for target, keys in aliases.items():
+        for key in keys:
+            if key in props and props[key] not in (None, ""):
+                common[target] = props[key]
+                break
+
     return {
         "alu": cell.id,
         "level": cell.level,
         "width_m": cell.width_m,
         "height_m": cell.height_m,
         "area_m2": cell.area_m2,
-        "ulpin": ((row[1] or row[0]) if row else "Not linked"),
+        "ulpin": ((props.get("ulpin") or props.get("ULPIN") or props.get("ULPIN_NO") or row[0]) if row else "Not linked"),
         "parcel_id": (row[0] if row else None),
+        "reference": {
+            "source": (props.get("source") or ("PostGIS cadastral_parcels" if row else "Not linked")),
+            "state_code": (row[1] if row else None),
+            "district_code": (row[2] if row else None),
+            "village_code": (row[3] if row else None),
+            "centroid": {"lat": row[6], "lng": row[5]} if row and row[5] is not None and row[6] is not None else None,
+            "fields": common,
+            "properties": props,
+        },
     }
 
 @app.get("/api/v1/spatial/levels", tags=["Spatial"])
