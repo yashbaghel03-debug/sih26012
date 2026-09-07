@@ -13,7 +13,9 @@ _PARENT_LEVEL={"100m":"1km","10m":"100m","1m":"10m","0.1m2":"1m"}
 def _validate(level):
     if level not in LEVEL_SPECS:raise ValueError(f"Unknown ALU level: {level}")
 def cell_id(level,ix,iy):
-    _validate(level);return f"ALU-{level}-{ix:+d}-{iy:+d}"
+    _validate(level)
+    def enc(v):return ("p" if v>=0 else "n")+str(abs(v))
+    return f"ALU-{level}-x{enc(ix)}-y{enc(iy)}"
 @dataclass(frozen=True)
 class Cell:
     level:str;ix:int;iy:int
@@ -27,8 +29,13 @@ class Cell:
     def area_m2(self):return self.width_m*self.height_m
 def cell_from_id(value):
     parts=value.split("-")
-    if len(parts)!=4 or parts[0]!="ALU":raise ValueError(f"Invalid ALU cell ID: {value}")
-    _validate(parts[1]);return Cell(parts[1],int(parts[2]),int(parts[3]))
+    if len(parts)!=4 or parts[0]!="ALU" or not parts[2].startswith("x") or not parts[3].startswith("y"):raise ValueError(f"Invalid ALU cell ID: {value}")
+    _validate(parts[1])
+    def dec(token):
+        sign=1 if token[1]=="p" else -1 if token[1]=="n" else None
+        if sign is None or len(token)<3:raise ValueError(f"Invalid coordinate token: {token}")
+        return sign*int(token[2:])
+    return Cell(parts[1],dec(parts[2]),dec(parts[3]))
 def parent(cell):
     p_level=_PARENT_LEVEL.get(cell.level)
     if p_level is None:return None
