@@ -2,8 +2,7 @@
 (() => {
 'use strict';
 const API_BASE=new URLSearchParams(location.search).get('api')||'http://localhost:8000';
-// Broad initial viewport; the actual national boundary comes from the official
-// Government of India India_Boundary GIS source and controls grid clipping.
+// Broad initial viewport; the actual national boundary controls ALU clipping.
 const INDIA_VIEW_BOUNDS=[[6.0,66.0],[38.5,98.5]];
 const INDIA_CACHE='sih26012-official-india-boundary-v4';
 const R=6378137,WORLD=2*Math.PI*R,ROOT_X=7570000,ROOT_Y=700000,ROOT_COLS=400;
@@ -30,8 +29,9 @@ function screen(mx,my,z,o){const w=worldPx(z);return[(mx/WORLD+.5)*w-o.x,(.5-my/
 function pointRing(lat,lon,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const x1=ring[i][0],y1=ring[i][1],x2=ring[j][0],y2=ring[j][1],hit=((y1>lat)!=(y2>lat))&&(lon<(x2-x1)*(lat-y1)/(y2-y1)+x1);if(hit)inside=!inside}return inside}
 function contains(lat,lon,f){const g=f.geometry;if(!g)return false;const poly=p=>pointRing(lat,lon,p[0])&&p.slice(1).every(r=>!pointRing(lat,lon,r));return g.type==='Polygon'?poly(g.coordinates):g.type==='MultiPolygon'?g.coordinates.some(poly):false}
 function inIndia(lat,lon){if(lat<INDIA_VIEW_BOUNDS[0][0]||lat>INDIA_VIEW_BOUNDS[1][0]||lon<INDIA_VIEW_BOUNDS[0][1]||lon>INDIA_VIEW_BOUNDS[1][1])return false;if(!indiaGeometry.length)return false;return indiaGeometry.some(f=>contains(lat,lon,f))}
-function pathRing(ctx,ring,z,o){if(!ring.length)return;let p=screen(...merc(ring[0][1],ring[0][0]),z,o);ctx.moveTo(p[0],p[1]);for(let i=1;i<ring.length;i++){p=screen(...merc(ring[i][1],ring[i][0]),z,o);ctx.lineTo(p[0],p[1])}ctx.closePath()}
-function clipIndia(ctx,z,o){if(!indiaGeometry.length)return false;ctx.beginPath();for(const f of indiaGeometry){const g=f.geometry;if(g.type==='Polygon')for(const r of g.coordinates)pathRing(ctx,r,z,o);else if(g.type==='MultiPolygon')for(const p of g.coordinates)for(const r of p)pathRing(ctx,r,z,o)}ctx.clip('evenodd');return true}
+const boundaryPathCache=new Map();
+function worldPoint(lat,lon,z){const[mx,my]=merc(lat,lon),w=worldPx(z);return[(mx/WORLD+.5)*w,(.5-my/WORLD)*w]}
+function buildBoundaryPath(z){const key=Math.round(z*2)/2;if(boundaryPathCache.has(key))return boundaryPathCache.get(key);const path=new Path2D();for(const f of indiaGeometry){const g=f.geometry;if(g?.type==='Polygon'){for(const ring of g.coordinates){if(!ring.length)continue;let p=worldPoint(ring[0][1],ring[0][0],key);path.moveTo(p[0],p[1]);for(let i=1;i<ring.length;i++){p=worldPoint(ring[i][1],ring[i][0],key);path.lineTo(p[0],p[1])}path.closePath()}}else if(g?.type==='MultiPolygon'){for(const poly of g.coordinates)for(const ring of poly){if(!ring.length)continue;let p=worldPoint(ring[0][1],ring[0][0],key);path.moveTo(p[0],p[1]);for(let i=1;i<ring.length;i++){p=worldPoint(ring[i][1],ring[i][0],key);path.lineTo(p[0],p[1])}path.closePath()}}}boundaryPathCache.set(key,path);return path}
 function activeLevel(){let l=LEVELS[0];for(const x of LEVELS)if(map.getZoom()>=x.zoom)l=x;return l}
 function visibleMerc(){const b=map.getBounds(),a=merc(b.getSouth(),b.getWest()),c=merc(b.getNorth(),b.getEast());return{minX:Math.min(a[0],c[0]),maxX:Math.max(a[0],c[0]),minY:Math.min(a[1],c[1]),maxY:Math.max(a[1],c[1])}}
 function cellAt(lat,lon){const level=activeLevel(),[mx,my]=merc(lat,lon),ix=Math.floor((mx-ROOT_X)/10000),iy=Math.floor((my-ROOT_Y)/10000);if(ix<0||iy<0||ix>=ROOT_COLS||!inIndia(lat,lon))return null;let lx=mx-(ROOT_X+ix*10000),ly=my-(ROOT_Y+iy*10000),side=10000,path=[];for(let d=0;d<level.depth;d++){if(d<4){const s=side/10,dx=Math.max(0,Math.min(9,Math.floor(lx/s))),dy=Math.max(0,Math.min(9,Math.floor(ly/s)));path.push(dy*10+dx);lx-=dx*s;ly-=dy*s;side=s}else{const t=Math.sqrt(.1);let hit=-1;for(let k=0;k<10;k++){const p=TERMINAL[k];if(lx>=p[0]&&lx<=p[0]+t&&ly>=p[1]&&ly<=p[1]+t){hit=k;break}}if(hit<0)return null;path.push(hit)}}return{ix,iy,path,code:[rootCode(ix,iy),...path.map(i=>TOKENS[i])].join('-'),level}}
@@ -45,51 +45,39 @@ L.control.layers({'Street / GPS':street,'Physical / Terrain':physical,'Satellite
 const boundaryLayer=L.geoJSON(null,{style:{weight:2,color:'#111827',fill:false,opacity:.9},interactive:false}).addTo(map),highlightLayer=L.layerGroup().addTo(map);
 const canvas=L.DomUtil.create('canvas','alu-grid-canvas');canvas.style.position='absolute';canvas.style.left='0';canvas.style.top='0';canvas.style.pointerEvents='none';canvas.style.zIndex='450';map.getPane('overlayPane').appendChild(canvas);
 const tooltip=document.getElementById('cellTooltip'),searchInput=document.getElementById('aluSearch'),searchResult=document.getElementById('searchResult'),searchHint=document.getElementById('searchHint');
-let indiaGeometry=[],metaCache=new Map(),hoverToken=0,frame=0;
-function useBoundary(geo){if(!geo?.features?.length)return false;indiaGeometry=geo.features;boundaryLayer.clearLayers();boundaryLayer.addData(geo);return true}
+let indiaGeometry=[],metaCache=new Map(),hoverToken=0,frame=0,lastCanvasW=0,lastCanvasH=0,lastDpr=0,lastHoverCode='',hoverTimer=0,hoverController=null;
+function useBoundary(geo){if(!geo?.features?.length)return false;indiaGeometry=geo.features;boundaryPathCache.clear();boundaryLayer.clearLayers();boundaryLayer.addData(geo);return true}
 function loadCachedBoundary(){try{const geo=JSON.parse(localStorage.getItem(INDIA_CACHE)||'null');return useBoundary(geo)}catch(_){return false}}
-function resizeCanvas(){const s=map.getSize(),d=Math.min(devicePixelRatio||1,2);canvas.width=Math.max(1,Math.floor(s.x*d));canvas.height=Math.max(1,Math.floor(s.y*d));canvas.style.width=s.x+'px';canvas.style.height=s.y+'px';return d}
+function resizeCanvas(){const s=map.getSize(),d=Math.min(devicePixelRatio||1,2);if(s.x!==lastCanvasW||s.y!==lastCanvasH||d!==lastDpr){canvas.width=Math.max(1,Math.floor(s.x*d));canvas.height=Math.max(1,Math.floor(s.y*d));canvas.style.width=s.x+'px';canvas.style.height=s.y+'px';lastCanvasW=s.x;lastCanvasH=s.y;lastDpr=d}return d}
+const ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});
 function paint(){
-  const size=map.getSize(),d=resizeCanvas(),ctx=canvas.getContext('2d');
-  ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,size.x,size.y);
+  const size=map.getSize(),d=resizeCanvas(),z=map.getZoom(),o=map.getPixelOrigin(),v=visibleMerc(),level=activeLevel(),unit=level.side;
+  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,Math.max(1,Math.floor(size.x*d)),Math.max(1,Math.floor(size.y*d)));
   if(!indiaGeometry.length)return;
-  const z=map.getZoom(),o=map.getPixelOrigin(),v=visibleMerc(),level=activeLevel(),unit=level.side;
   const px=unit*worldPx(z)/WORLD;
-  const stride=Math.max(1,Math.ceil(0.85/Math.max(px,.0001)));
+  let stride=Math.max(1,Math.ceil(2/Math.max(px,.0001)));
   const minX=Math.floor((v.minX-unit*2)/unit),maxX=Math.ceil((v.maxX+unit*2)/unit),minY=Math.floor((v.minY-unit*2)/unit),maxY=Math.ceil((v.maxY+unit*2)/unit);
-  ctx.save();
-  if(!clipIndia(ctx,z,o)){ctx.restore();return}
-  ctx.strokeStyle='rgba(31,78,121,.50)';ctx.lineWidth=1;ctx.beginPath();
-  for(let gx=minX;gx<=maxX;gx+=stride){const x=gx*unit,a=screen(x,v.minY-unit,z,o),sx=Math.round(a[0])+.5;ctx.moveTo(sx,0);ctx.lineTo(sx,size.y)}
-  for(let gy=minY;gy<=maxY;gy+=stride){const y=gy*unit,a=screen(v.minX-unit,y,z,o),sy=Math.round(a[1])+.5;ctx.moveTo(0,sy);ctx.lineTo(size.x,sy)}
+  while((maxX-minX)/stride>1200||(maxY-minY)/stride>1200)stride*=2;
+  const boundaryZoom=Math.round(z*2)/2;
+  const scale=worldPx(z)/worldPx(boundaryZoom),bp=buildBoundaryPath(boundaryZoom);
+  ctx.setTransform(d*scale,0,0,d*scale,-o.x*d,-o.y*d);
+  ctx.save();ctx.clip(bp,'evenodd');
+  ctx.strokeStyle='rgba(31,78,121,.50)';ctx.lineWidth=Math.max(.7,1/Math.max(scale,1));ctx.beginPath();
+  for(let gx=minX;gx<=maxX;gx+=stride){const x=gx*unit,w=worldPx(z),sx=(x/WORLD+.5)*w;ctx.moveTo(sx/(scale),0);ctx.lineTo(sx/(scale),size.y/(scale))}
+  for(let gy=minY;gy<=maxY;gy+=stride){const y=gy*unit,w=worldPx(z),sy=(.5-y/WORLD)*w;ctx.moveTo(0,sy/(scale));ctx.lineTo(size.x/(scale),sy/(scale))}
   ctx.stroke();ctx.restore();
 }
 function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;paint()})}
 map.on('move zoom resize',schedule);window.addEventListener('resize',()=>{map.invalidateSize({pan:false});schedule()},{passive:true});
 async function openALU(cell){const u=new URL('alu-details.html',location.href);u.searchParams.set('alu',cell.code);u.searchParams.set('lat',cell.lat||'');u.searchParams.set('lng',cell.lng||'');window.location.href=u.href}
-async function hover(e){const h=cellAt(e.latlng.lat,e.latlng.lng);if(!h){tooltip.classList.add('hidden');return}tooltip.classList.remove('hidden');tooltip.style.left=Math.min(innerWidth-300,Math.max(10,e.originalEvent.clientX+14))+'px';tooltip.style.top=Math.min(innerHeight-105,Math.max(10,e.originalEvent.clientY+14))+'px';tooltip.innerHTML='<b>'+h.code+'</b><br>Area: '+(h.level.side*h.level.side)+' m²<br>ULPIN: checking…';const t=++hoverToken;if(metaCache.has(h.code)){const d=metaCache.get(h.code);tooltip.innerHTML='<b>'+h.code+'</b><br>Area: '+(d.area_m2??h.level.side*h.level.side)+' m²<br>ULPIN: '+(d.ulpin||'Not linked');return}try{const r=await fetch(API_BASE+'/api/v1/spatial/cell-info/'+encodeURIComponent(h.code),{cache:'force-cache'});const d=r.ok?await r.json():{};metaCache.set(h.code,d);if(t===hoverToken)tooltip.innerHTML='<b>'+h.code+'</b><br>Area: '+(d.area_m2??h.level.side*h.level.side)+' m²<br>ULPIN: '+(d.ulpin||'Not linked')}catch(_){metaCache.set(h.code,{area_m2:h.level.side*h.level.side,ulpin:'Not linked'});if(t===hoverToken)tooltip.innerHTML='<b>'+h.code+'</b><br>Area: '+h.level.side*h.level.side+' m²<br>ULPIN: Not linked'}}
+function renderTooltip(h,e){tooltip.classList.remove('hidden');tooltip.style.left=Math.min(innerWidth-300,Math.max(10,e.originalEvent.clientX+14))+'px';tooltip.style.top=Math.min(innerHeight-105,Math.max(10,e.originalEvent.clientY+14))+'px';tooltip.innerHTML='<b>'+h.code+'</b><br>Area: '+(h.level.side*h.level.side)+' m²<br>ULPIN: '+(metaCache.get(h.code)?.ulpin||'checking…')}
+function hover(e){const h=cellAt(e.latlng.lat,e.latlng.lng);if(!h){lastHoverCode='';tooltip.classList.add('hidden');if(hoverTimer){clearTimeout(hoverTimer);hoverTimer=0}if(hoverController){hoverController.abort();hoverController=null}return}renderTooltip(h,e);if(h.code===lastHoverCode)return;lastHoverCode=h.code;if(hoverTimer)clearTimeout(hoverTimer);if(hoverController)hoverController.abort();hoverTimer=setTimeout(async()=>{hoverTimer=0;if(metaCache.has(h.code)){renderTooltip(h,e);return}hoverController=new AbortController();const t=++hoverToken;try{const r=await fetch(API_BASE+'/api/v1/spatial/cell-info/'+encodeURIComponent(h.code),{cache:'force-cache',signal:hoverController.signal});const d=r.ok?await r.json():{};metaCache.set(h.code,d);if(t===hoverToken)renderTooltip(h,e)}catch(_){if(t===hoverToken){metaCache.set(h.code,{area_m2:h.level.side*h.level.side,ulpin:'Not linked'});renderTooltip(h,e)}}finally{hoverController=null}},80)}
 map.on('mousemove',hover);
 map.on('click',e=>{const h=cellAt(e.latlng.lat,e.latlng.lng);if(!h)return;h.lat=e.latlng.lat.toFixed(7);h.lng=e.latlng.lng.toFixed(7);openALU(h)});
-map.on('mouseout',()=>{hoverToken++;tooltip.classList.add('hidden')});
+map.on('mouseout',()=>{hoverToken++;lastHoverCode='';tooltip.classList.add('hidden');if(hoverTimer){clearTimeout(hoverTimer);hoverTimer=0}if(hoverController){hoverController.abort();hoverController=null}});
 function parseALU(v){const p=v.trim().toUpperCase().split('-').filter(Boolean);if(p.length<1||p.length>6)throw Error('Enter a 6-character root plus up to five 2-character hierarchy segments');const r=rootFromCode(p[0]),path=p.slice(1).map((t,i)=>{if(!TOKEN_TO_INDEX.has(t)||!/^[A-Z0-9]{2}$/.test(t)||!/[A-Z]/.test(t)||!/[0-9]/.test(t))throw Error('Invalid 2-character mixed base36 hierarchy segment');const n=TOKEN_TO_INDEX.get(t);if(i===4&&n>=10)throw Error('Final 0.1 m² refinement has ten terminal children');return n});return{ix:r.ix,iy:r.iy,path,code:p.join('-')}}
 document.getElementById('aluSearchForm')?.addEventListener('submit',e=>{e.preventDefault();try{const t=parseALU(searchInput.value),c=cellMercator(t.ix,t.iy,t.path),a=inv(c.x1,c.y1),b=inv(c.x2,c.y2),ll=[[a[0],a[1]],[b[0],b[1]]];highlightLayer.clearLayers();const r=L.rectangle(ll,{weight:4,color:'#ef4444',fill:false,dashArray:'8 6',interactive:false}).addTo(highlightLayer);searchResult.classList.remove('hidden');searchResult.innerHTML='<b>'+t.code+'</b><br>Located ALU cell · click the highlighted cell to open details';map.flyToBounds(r.getBounds().pad(.55),{duration:.9,maxZoom:29})}catch(err){searchHint.textContent=err.message||'Invalid ALU code'}});
 async function fetchBoundary(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('boundary '+r.status);const geo=await r.json();if(geo?.type==='Feature')return{type:'FeatureCollection',features:[geo]};if(!geo?.features?.length)throw Error('India boundary is empty');return geo}
-async function loadBoundaries(){
-  if(loadCachedBoundary()){searchHint.textContent='Indian political boundary: Survey of India / Government of India source.';schedule()}
-  const url=API_BASE+'/api/v1/spatial/india-boundaries';
-  try{
-    const geo=await fetchBoundary(url);
-    if(useBoundary(geo)){
-      try{localStorage.setItem(INDIA_CACHE,JSON.stringify(geo))}catch(_){ }
-      searchHint.textContent='Indian political boundary: Survey of India / Government of India source.';
-      schedule();
-      return;
-    }
-  }catch(err){console.warn('Official India boundary source failed',url,err)}
-  searchHint.textContent=indiaGeometry.length?'Using cached official India boundary.':'Official India boundary could not be loaded; grid is withheld to avoid displaying it outside India.';
-  schedule();
-}
-loadBoundaries();
-loadCachedBoundary();
-schedule();
+async function loadBoundaries(){if(loadCachedBoundary()){searchHint.textContent='Indian political boundary: Survey of India / Government of India source.';schedule()}const url=API_BASE+'/api/v1/spatial/india-boundaries';try{const geo=await fetchBoundary(url);if(useBoundary(geo)){try{localStorage.setItem(INDIA_CACHE,JSON.stringify(geo))}catch(_){ }searchHint.textContent='Indian political boundary: Survey of India / Government of India source.';schedule();return}}catch(err){console.warn('Official India boundary source failed',url,err)}searchHint.textContent=indiaGeometry.length?'Using cached official India boundary.':'Official India boundary could not be loaded; grid is withheld to avoid displaying it outside India.';schedule()}
+loadBoundaries();loadCachedBoundary();schedule();
 })();
