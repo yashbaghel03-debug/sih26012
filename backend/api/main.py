@@ -1,6 +1,9 @@
 """FastAPI API for assignment, PostGIS-backed WebGIS and ALU hierarchy."""
 from __future__ import annotations
+import json
 import os
+import urllib.parse
+import urllib.request
 from functools import lru_cache
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +17,11 @@ from ..spatial_indexing.lattice import LEVEL_ORDER, LEVEL_SPECS, Cell, ancestor_
 
 MOCK_PORTAL_URL = os.environ.get("MOCK_PORTAL_URL", "http://localhost:8001")
 POSTGIS_DSN = os.environ.get("POSTGIS_DSN", "dbname=sih26012 user=sih password=sih host=localhost port=5432")
-app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.1.1", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS.")
+OFFICIAL_INDIA_BOUNDARY_QUERY = os.environ.get(
+    "OFFICIAL_INDIA_BOUNDARY_QUERY",
+    "https://mapservice.gov.in/mapserviceserv176/rest/services/India_Boundary/MapServer/0/query",
+)
+app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.2.0", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS.")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:5173"], allow_credentials=True, allow_methods=["GET", "POST"], allow_headers=["*"])
 
 @lru_cache(maxsize=64)
@@ -190,43 +197,60 @@ def spatial_levels():
         "mixed_rule": "every root and hierarchy segment contains at least one letter and one number",
     }
 
+@lru_cache(maxsize=1)
+def _official_india_boundary():
+    params = urllib.parse.urlencode({
+        "where": "1=1",
+        "outFields": "*",
+        "returnGeometry": "true",
+        "outSR": "4326",
+        "f": "geojson",
+    })
+    with urllib.request.urlopen(OFFICIAL_INDIA_BOUNDARY_QUERY + "?" + params, timeout=45) as response:
+        data = json.load(response)
+    features = data.get("features") or []
+    if not features:
+        raise RuntimeError("Survey of India / NIC India_Boundary returned no features")
+    return {"type": "FeatureCollection", "features": features}
+
 @app.get("/api/v1/spatial/india-boundaries", tags=["Spatial"])
 def india_boundaries():
-    """Return one dissolved national outline for clipping the ALU grid.
+    """Return the national boundary from the official Government of India GIS source.
 
-    The source features remain the Government of India's BharatMapService
-    administrative boundaries. Dissolving them removes state/district seams
-    so the renderer clips only to the national outer boundary.
+    The NIC India_Boundary service is based on Survey of India topographic data.
+    The returned polygons are dissolved only at the rendering side into a single
+    national clip, preserving the source geometry rather than inventing a boundary.
     """
     try:
-        with db() as conn, conn.cursor() as cur:
-            cur.execute(
-                """SELECT ST_AsGeoJSON(
-                           ST_Multi(
-                               ST_CollectionExtract(
-                                   ST_UnaryUnion(ST_Collect(geom)), 3
+        return _official_india_boundary()
+    except Exception as official_exc:
+        try:
+            with db() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """SELECT ST_AsGeoJSON(
+                               ST_Multi(
+                                   ST_CollectionExtract(
+                                       ST_UnaryUnion(ST_Collect(geom)), 3
+                                   )
                                )
-                           )
-                       )::json AS geometry
-                   FROM admin_boundaries
-                   WHERE level = 'state'"""
-            )
-            row = cur.fetchone()
-    except Exception as exc:
-        raise HTTPException(503, f"PostGIS unavailable: {exc}")
-
-    if not row or not row[0]:
-        raise HTTPException(404, "India national boundary is not loaded in PostGIS")
-
-    return {
-        "type": "FeatureCollection",
-        "features": [{
-            "type": "Feature",
-            "id": "india-national-boundary",
-            "properties": {"name": "India", "source": "gov.in:BharatMapService", "resolution_target": "1 km-scale display clipping"},
-            "geometry": row[0],
-        }],
-    }
+                           )::json AS geometry
+                       FROM admin_boundaries
+                       WHERE level = 'state'"""
+                )
+                row = cur.fetchone()
+            if not row or not row[0]:
+                raise RuntimeError("No fallback boundary in PostGIS")
+            return {
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "id": "india-national-boundary-fallback",
+                    "properties": {"name": "India", "source": "PostGIS state boundary fallback"},
+                    "geometry": row[0],
+                }],
+            }
+        except Exception as db_exc:
+            raise HTTPException(503, f"Official India boundary unavailable: {official_exc}; PostGIS fallback unavailable: {db_exc}")
 
 @app.post("/api/v1/rounds/demo", tags=["Rounds"])
 def process_demo_rounds():
