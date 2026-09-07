@@ -49,33 +49,40 @@
     cached = normalize(JSON.parse(localStorage.getItem(cacheKey) || 'null'));
     cachedIsNational = !!cached;
   } catch (_) {}
-  if (!cached) {
-    try { cached = normalize(JSON.parse(localStorage.getItem(legacyKey) || 'null')); } catch (_) {}
-  }
 
-  // A cached boundary lets the map and its grid paint immediately.
+  // Only the new national cache is trusted for immediate loading. The older
+  // narrower cache remains a last-resort fallback if the national source is down.
   if (cached) {
     install(cached);
     loadMap();
   }
 
   (async () => {
-    // Refresh/obtain the broader national polygon. When there is no cache,
-    // wait for this authoritative-source-derived geometry before starting the
-    // renderer so POK/Aksai Chin are included in the first map state.
-    try {
-      const geo = await getJson(nationalBoundary);
-      if (geo) {
-        try { localStorage.setItem(cacheKey, JSON.stringify(geo)); } catch (_) {}
-        if (!cached) loadMap();
-        install(geo);
-        return;
-      }
-    } catch (error) {
-      console.warn('LGD-derived India national boundary unavailable', error);
-    }
-
+    // On a fresh browser, fetch the national polygon before starting map.js so
+    // the first renderer state already contains POK and Aksai Chin.
     if (!cached) {
+      try {
+        const geo = await getJson(nationalBoundary);
+        if (geo) {
+          try { localStorage.setItem(cacheKey, JSON.stringify(geo)); } catch (_) {}
+          install(geo);
+          loadMap();
+          return;
+        }
+      } catch (error) {
+        console.warn('LGD-derived India national boundary unavailable', error);
+      }
+
+      // Source/network fallback only when the national source is unavailable.
+      try {
+        const legacy = normalize(JSON.parse(localStorage.getItem(legacyKey) || 'null'));
+        if (legacy) {
+          install(legacy);
+          loadMap();
+          return;
+        }
+      } catch (_) {}
+
       try {
         const geo = await getJson(apiBoundary);
         if (geo) {
@@ -86,9 +93,20 @@
       } catch (error) {
         console.warn('Fallback India boundary unavailable', error);
       }
+
       document.getElementById('searchHint').textContent = 'India boundary could not be loaded. Start FastAPI/PostGIS or restore network access.';
-    } else if (!cachedIsNational) {
-      document.getElementById('searchHint').textContent = 'Using cached India boundary while the national boundary is unavailable.';
+      return;
+    }
+
+    // Refresh national cache in the background. The already-loaded map is left
+    // untouched, so there is no basemap/UI change during normal use.
+    try {
+      const geo = await getJson(nationalBoundary);
+      if (geo) {
+        try { localStorage.setItem(cacheKey, JSON.stringify(geo)); } catch (_) {}
+      }
+    } catch (error) {
+      console.warn('LGD-derived India national boundary refresh failed', error);
     }
   })();
 })();
