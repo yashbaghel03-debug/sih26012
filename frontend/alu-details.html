@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ALU Details — SIH 26012</title>
+  <link rel="stylesheet" href="alu-details.css?v=20260907a">
+</head>
+<body>
+  <main class="details-shell">
+    <header class="details-head">
+      <div class="head-icon">▦</div><div><h1>ALU Details</h1><div id="subtitle">Land Unit</div></div>
+      <a class="close" href="index.html" aria-label="Back to map">×</a>
+    </header>
+    <section class="ulpin-box"><div class="eyebrow">ULPIN (Parent Parcel)</div><strong id="ulpin">Not linked</strong><a id="openMap" class="small-btn" href="index.html">⌖ View Parcel on Map</a></section>
+    <div class="content-grid">
+      <aside>
+        <div class="mini-map" id="miniMap"><div class="mini-cross"></div></div>
+        <div class="side-card"><span>ALU ID</span><b id="alu"></b><span>Grid Cell Area</span><b id="area"></b><span>Coordinates</span><b id="coords">—</b><span>Accuracy</span><b>Spatial cell</b></div>
+        <div class="confidence"><span>Reference Status</span><strong id="status">Checking…</strong><div class="bar"><i id="bar"></i></div></div>
+      </aside>
+      <section class="cards-wrap">
+        <div id="cards" class="cards"></div>
+        <div class="raw"><div><b>Reference source</b><span id="source">—</span></div><button id="rawToggle">Show raw reference fields</button></div>
+        <pre id="rawData" class="raw-data hidden"></pre>
+      </section>
+    </div>
+    <footer class="details-footer"><a class="primary" id="viewMapBottom" href="index.html">⌖ View on Map</a><button id="streetView" class="secondary">Street View</button><button class="secondary" id="copyAlu">Copy ALU ID</button></footer>
+  </main>
+  <script src="alu-details.js?v=20260907a"></script>
+</body>
+</html>
