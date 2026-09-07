@@ -1,0 +1,128 @@
+{
+  "ULPIN": {
+    "category_no": 1,
+    "category_name": "ULPIN",
+    "endpoint": "/api/v1/land-records/ulpin/{parcel_id}",
+    "department": "DILRMP / Telangana Land Records Department"
+  },
+  "CADASTRAL_MAP": {
+    "category_no": 2,
+    "category_name": "Cadastral Map / Parcel Boundary",
+    "endpoint": "/api/v1/survey/cadastral/{parcel_id}",
+    "department": "TSSDI / Survey of India"
+  },
+  "GEOREF_IMAGERY": {
+    "category_no": 3,
+    "category_name": "Georeferenced Satellite / Base Imagery",
+    "endpoint": "/api/v1/survey/imagery/{parcel_id}",
+    "department": "NRSC / ISRO Bhuvan"
+  },
+  "ROR": {
+    "category_no": 4,
+    "category_name": "Record of Rights (RoR)",
+    "endpoint": "/api/v1/land-records/ror/{parcel_id}",
+    "department": "Telangana Revenue Department / MeeSeva"
+  },
+  "REGISTRATION_DEEDS": {
+    "category_no": 5,
+    "category_name": "Registration Deeds / Title Chain",
+    "endpoint": "/api/v1/registration/deeds/{parcel_id}",
+    "department": "Inspector General of Registration, Telangana"
+  },
+  "MASTER_PLAN": {
+    "category_no": 6,
+    "category_name": "Master Plan / Town Layout",
+    "endpoint": "/api/v1/planning/master-plan/{parcel_id}",
+    "department": "HMDA / DTCP Telangana"
+  },
+  "BUILDING_APPROVAL": {
+    "category_no": 7,
+    "category_name": "Building Plan Permissions / Approvals",
+    "endpoint": "/api/v1/planning/building-approval/{parcel_id}",
+    "department": "GHMC / ULB Building Permissions"
+  },
+  "OCCUPANCY_CERT": {
+    "category_no": 8,
+    "category_name": "Completion / Occupancy Certificate",
+    "endpoint": "/api/v1/planning/occupancy-certificate/{parcel_id}",
+    "department": "GHMC / ULB"
+  },
+  "ENCUMBRANCES": {
+    "category_no": 9,
+    "category_name": "Encumbrances / Charges",
+    "endpoint": "/api/v1/registration/encumbrances/{parcel_id}",
+    "department": "Inspector General of Registration, Telangana"
+  },
+  "MORTGAGE": {
+    "category_no": 10,
+    "category_name": "Active Bank Mortgages / Liens",
+    "endpoint": "/api/v1/registration/mortgage/{parcel_id}",
+    "department": "Inspector General of Registration / CERSAI"
+  },
+  "ZONING": {
+    "category_no": 11,
+    "category_name": "Land Use Classification / Zoning",
+    "endpoint": "/api/v1/planning/zoning/{parcel_id}",
+    "department": "HMDA / DTCP / Zoning Authority"
+  },
+  "UTILITY_INFRA": {
+    "category_no": 12,
+    "category_name": "Utility Infrastructure",
+    "endpoint": "/api/v1/utilities/infrastructure/{parcel_id}",
+    "department": "HMWSSB / TSSPDCL / GHMC"
+  },
+  "PROPERTY_TAX": {
+    "category_no": 13,
+    "category_name": "Property Taxation / Arrears",
+    "endpoint": "/api/v1/municipal/property-tax/{parcel_id}",
+    "department": "GHMC / Greater Hyderabad Municipal Corporation"
+  },
+  "VALUATION": {
+    "category_no": 14,
+    "category_name": "Valuation / Circle Rates",
+    "endpoint": "/api/v1/registration/valuation/{parcel_id}",
+    "department": "Inspector General of Registration, Telangana"
+  },
+  "INFRA_NETWORKS": {
+    "category_no": 15,
+    "category_name": "Infrastructure Networks / ROW Buffers",
+    "endpoint": "/api/v1/infrastructure/networks/{parcel_id}",
+    "department": "PWD / NHAI / GHMC Roads"
+  },
+  "ENV_BUFFERS": {
+    "category_no": 16,
+    "category_name": "Environmental Buffers / Forest Zones",
+    "endpoint": "/api/v1/environment/buffers/{parcel_id}",
+    "department": "TSPCB / MoEF / Forest Department"
+  },
+  "RESTRICTION_ZONES": {
+    "category_no": 17,
+    "category_name": "Restriction Zones (CRZ / Defence / Heritage)",
+    "endpoint": "/api/v1/environment/restriction-zones/{parcel_id}",
+    "department": "MoEF / Ministry of Defence / ASI / AAI"
+  },
+  "SERVICE_LINKAGES": {
+    "category_no": 18,
+    "category_name": "Service Linkages / Welfare Schemes",
+    "endpoint": "/api/v1/welfare/service-linkages/{parcel_id}",
+    "department": "MoSJE / State Welfare Department"
+  },
+  "LITIGATION": {
+    "category_no": 19,
+    "category_name": "Pending Litigation / Court Stays",
+    "endpoint": "/api/v1/judicial/litigation/{parcel_id}",
+    "department": "eCourts / NIC Judicial Services"
+  },
+  "CHANGE_DETECTION": {
+    "category_no": 20,
+    "category_name": "Satellite / Drone Change Detection",
+    "endpoint": "/api/v1/survey/change-detection/{parcel_id}",
+    "department": "NRSC / Drone Survey"
+  },
+  "WORKFLOW_LOGS": {
+    "category_no": 21,
+    "category_name": "Workflow Logs / Transaction Tracking",
+    "endpoint": "/api/v1/workflow/logs/{parcel_id}",
+    "department": "ALU Engine / Internal Audit"
+  }
+}

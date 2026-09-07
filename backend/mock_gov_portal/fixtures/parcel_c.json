@@ -1,0 +1,192 @@
+{
+  "parcel_id": "PC-HY-2024-003",
+  "ulpin": "TS-RR-003-2024-00003",
+  "description": "Agricultural land, Rangareddy district, Telangana",
+  "land_type": "Agricultural",
+  "area_sq_m": 8094,
+  "score": 12,
+  "color": "red",
+  "location": {
+    "state": "Telangana",
+    "district": "Rangareddy",
+    "mandal": "Shamshabad",
+    "village": "Pedda Amberpet",
+    "survey_no": "78/2"
+  },
+  "land_records": {
+    "ulpin": {
+      "availability": "available",
+      "value": "TS-RR-003-2024-00003",
+      "survey_no": "78/2",
+      "village": "Pedda Amberpet",
+      "mandal": "Shamshabad",
+      "district": "Rangareddy",
+      "state": "Telangana",
+      "reference": "DILRMP-TS-RR-00003"
+    },
+    "ror": {
+      "availability": "available",
+      "khata_no": "KH-RR-2024-1102",
+      "owner_name": "Venkata Ramana Reddy",
+      "father_name": "Narsimha Reddy",
+      "land_type": "Agriculture",
+      "extent_sq_m": 8094,
+      "possession_type": "Owned",
+      "reference": "ROR-TS-RR-2024-1102"
+    }
+  },
+  "registration": {
+    "deeds": {
+      "availability": "available",
+      "deed_no": "REG-RR-2015-000781",
+      "registration_date": "2015-11-03",
+      "consideration_inr": 3200000,
+      "document_type": "Sale Deed",
+      "registered_at": "Sub-Registrar Office, Shamshabad",
+      "reference": "SRO-SHB-2015-000781"
+    },
+    "encumbrances": {
+      "availability": "available",
+      "ec_no": "EC-RR-2024-0087",
+      "period_from": "2010-01-01",
+      "period_to": "2024-01-01",
+      "active_encumbrances": false,
+      "transactions": [],
+      "reference": "EC-SRO-SHB-2024-0087"
+    },
+    "mortgage": {
+      "availability": "na",
+      "remarks": "N/A — Agricultural land. Property mortgage not applicable. Crop/agricultural loans are handled through separate Kisan Credit Card channel, not property encumbrance.",
+      "reference": null
+    },
+    "valuation": {
+      "availability": "nd",
+      "remarks": "Circle rate records are being revised following NRSC aerial survey re-demarcation. Official valuation not disclosed until revision complete.",
+      "reference": null
+    }
+  },
+  "planning": {
+    "master_plan": {
+      "availability": "na",
+      "remarks": "Agricultural land outside HMDA/ULB jurisdiction. No master plan applicable.",
+      "reference": null
+    },
+    "building_approval": {
+      "availability": "na",
+      "remarks": "No building approval — agricultural land. Non-agricultural conversion not approved.",
+      "reference": null
+    },
+    "occupancy_certificate": {
+      "availability": "na",
+      "remarks": "No structure exists requiring occupancy certificate.",
+      "reference": null
+    },
+    "zoning": {
+      "availability": "available",
+      "land_use": "Agricultural",
+      "zone_code": "AG",
+      "permissible_uses": ["Crop Cultivation", "Horticulture"],
+      "prohibited_uses": ["Residential", "Commercial", "Industrial"],
+      "reference": "DTCP-RR-ZONING-2024"
+    }
+  },
+  "municipal": {
+    "property_tax": {
+      "availability": "na",
+      "remarks": "Agricultural land outside municipal limits. Property tax not applicable.",
+      "reference": null
+    },
+    "valuation": {
+      "availability": "available",
+      "property_id": "RR-AG-78-2",
+      "assessed_value_inr": 20235000,
+      "valuation_date": "2023-04-01",
+      "reference": "RDO-RR-VAL-2023"
+    }
+  },
+  "survey": {
+    "cadastral": {
+      "availability": "available",
+      "survey_no": "78/2",
+      "area_sq_m": 8094,
+      "boundaries": {
+        "north": "Survey No 77",
+        "south": "Survey No 79",
+        "east": "Nala (drainage channel)",
+        "west": "Survey No 78/1"
+      },
+      "map_reference": "TSSDI-CAD-RR-2019-78-2"
+    },
+    "imagery": {
+      "availability": "available",
+      "image_date": "2023-07-10",
+      "resolution_cm": 50,
+      "source": "NRSC Bhuvan",
+      "layer_reference": "NRSC-IMG-RR-2023-Q2"
+    },
+    "change_detection": {
+      "availability": "nd",
+      "remarks": "Drone/satellite change detection survey has not yet been conducted for this sub-district. Data not available.",
+      "reference": null
+    }
+  },
+  "utilities": {
+    "infrastructure": {
+      "availability": "nd",
+      "remarks": "Utility connection data for rural agricultural parcels in this mandal is not yet consolidated into the digital registry. Data exists at field office but not disclosed via this portal.",
+      "reference": null
+    }
+  },
+  "environment": {
+    "env_buffers": {
+      "availability": "available",
+      "within_eco_sensitive": false,
+      "within_forest_buffer": false,
+      "flood_zone": "Zone B - Moderate Flood Risk",
+      "flood_remarks": "Within 200m of seasonal nala. Low-lying area.",
+      "reference": "TSPCB-ENV-RR-2024"
+    },
+    "restriction_zones": {
+      "availability": "available",
+      "within_crz": false,
+      "within_defence": false,
+      "within_heritage": false,
+      "within_airport_funnel": false,
+      "remarks": "No restriction zones applicable",
+      "reference": "MOEF-RZ-RR-2024"
+    }
+  },
+  "infrastructure": {
+    "networks": {
+      "availability": "nd",
+      "remarks": "PWD road network and ROW buffer data for village roads in this mandal has not been digitised and is not available via this portal.",
+      "reference": null
+    }
+  },
+  "welfare": {
+    "service_linkages": {
+      "availability": "available",
+      "ration_card_linked": true,
+      "aadhar_seeded": true,
+      "active_schemes": ["PM Kisan Samman Nidhi", "Rythu Bandhu - Enrolled"],
+      "reference": "WELFARE-TS-RR-2024-003"
+    }
+  },
+  "judicial": {
+    "litigation": {
+      "availability": "available",
+      "pending_cases": 0,
+      "court_stays": false,
+      "last_checked": "2024-01-10",
+      "reference": "ECOURT-TS-RR-2024"
+    }
+  },
+  "workflow": {
+    "transaction_logs": {
+      "availability": "available",
+      "last_transaction_date": "2024-01-10",
+      "transaction_type": "Initial Load",
+      "log_reference": "LOG-RR-PC-2024-003"
+    }
+  }
+}

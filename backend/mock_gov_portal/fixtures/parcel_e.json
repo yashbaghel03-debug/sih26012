@@ -1,0 +1,209 @@
+{
+  "parcel_id": "PE-HY-2024-005",
+  "ulpin": "TS-HY-005-2024-00005",
+  "description": "Apartment unit in multi-storey complex, Madhapur, Hyderabad",
+  "land_type": "Urban Residential - Flat",
+  "area_sq_m": 110,
+  "score": 16,
+  "color": "yellow",
+  "location": {
+    "state": "Telangana",
+    "district": "Hyderabad",
+    "mandal": "Serilingampally",
+    "village": "Madhapur",
+    "survey_no": "315/E-F04"
+  },
+  "land_records": {
+    "ulpin": {
+      "availability": "available",
+      "value": "TS-HY-005-2024-00005",
+      "survey_no": "315/E-F04",
+      "village": "Madhapur",
+      "mandal": "Serilingampally",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "reference": "DILRMP-TS-HY-00005"
+    },
+    "ror": {
+      "availability": "available",
+      "khata_no": "KH-HY-2024-71005",
+      "owner_name": "Aishwarya Suresh Pillai",
+      "father_name": "Suresh Pillai",
+      "land_type": "Urban Residential - Flat",
+      "extent_sq_m": 110,
+      "possession_type": "Self Occupied",
+      "reference": "ROR-TS-HY-2024-71005"
+    }
+  },
+  "registration": {
+    "deeds": {
+      "availability": "available",
+      "deed_no": "REG-HY-2022-031800",
+      "registration_date": "2022-02-14",
+      "consideration_inr": 7800000,
+      "document_type": "Sale Deed (Apartment)",
+      "registered_at": "Sub-Registrar Office, Serilingampally",
+      "reference": "SRO-SLP-2022-031800"
+    },
+    "encumbrances": {
+      "availability": "nd",
+      "remarks": "Encumbrance Certificate is issued at building/complex level (Survey No 315/E). Individual flat-level EC is not separately disclosed via this portal. Contact Sub-Registrar Office, Serilingampally.",
+      "reference": null
+    },
+    "mortgage": {
+      "availability": "available",
+      "active_mortgage": true,
+      "lender_name": "State Bank of India",
+      "loan_account": "SBI-HL-HY-2022-XXXXX",
+      "loan_amount_inr": 5500000,
+      "emi_status": "Regular",
+      "remarks": "Active home loan mortgage",
+      "reference": "SBI-HL-SLP-2022"
+    },
+    "valuation": {
+      "availability": "available",
+      "circle_rate_per_sqm_inr": 65000,
+      "market_value_inr": 7150000,
+      "valuation_year": "2024-25",
+      "zone": "Zone-III Madhapur IT Corridor",
+      "reference": "IGR-TS-HY-CVR-2024-E"
+    }
+  },
+  "planning": {
+    "master_plan": {
+      "availability": "available",
+      "plan_reference": "HMDA-MP-2031",
+      "use_zone": "R3 - High Density Residential",
+      "fsi_permitted": 4.0,
+      "reference": "HMDA-MP2031-HY-R3"
+    },
+    "building_approval": {
+      "availability": "available",
+      "permit_no": "GHMC-BP-2018-HY-22100",
+      "approved_date": "2018-03-12",
+      "approved_area_sqm": 4200,
+      "floors_approved": 12,
+      "approved_by": "GHMC Serilingampally Circle",
+      "remarks": "Complex-level approval (individual flat covered under parent approval)",
+      "reference": "GHMC-BP-SLP-2018-22100"
+    },
+    "occupancy_certificate": {
+      "availability": "available",
+      "oc_no": "GHMC-OC-2021-HY-19881",
+      "issued_date": "2021-08-20",
+      "building_use": "Residential",
+      "floors_constructed": 12,
+      "reference": "GHMC-OC-SLP-2021-19881"
+    },
+    "zoning": {
+      "availability": "available",
+      "land_use": "High Density Residential",
+      "zone_code": "R3",
+      "permissible_uses": ["Residential Apartments", "Home Office", "Community Hall"],
+      "reference": "HMDA-ZONING-2024-HY"
+    }
+  },
+  "municipal": {
+    "property_tax": {
+      "availability": "available",
+      "assessment_no": "GHMC-PT-HY-2024-501005",
+      "annual_tax_inr": 9200,
+      "last_paid_date": "2024-01-05",
+      "arrears_inr": 0,
+      "payment_status": "Clear",
+      "reference": "GHMC-TAX-2024-501005"
+    },
+    "valuation": {
+      "availability": "available",
+      "property_id": "GHMC-HY-501005",
+      "assessed_value_inr": 6800000,
+      "valuation_date": "2023-04-01",
+      "reference": "GHMC-VAL-2023-501005"
+    }
+  },
+  "survey": {
+    "cadastral": {
+      "availability": "available",
+      "survey_no": "315/E-F04",
+      "area_sq_m": 110,
+      "boundaries": {
+        "north": "Flat F03 (Same Floor)",
+        "south": "Flat F05 (Same Floor)",
+        "east": "Corridor",
+        "west": "External Wall"
+      },
+      "map_reference": "TSSDI-CAD-HY-2022-315E"
+    },
+    "imagery": {
+      "availability": "na",
+      "remarks": "Individual flat unit — georeferenced imagery available only at building/complex level, not individual flat level.",
+      "layer_reference": "NRSC-IMG-HY-2023-Q4-BLDG"
+    },
+    "change_detection": {
+      "availability": "na",
+      "remarks": "Change detection applicable at building level, not individual flat. No structural change at complex level.",
+      "reference": null
+    }
+  },
+  "utilities": {
+    "infrastructure": {
+      "availability": "available",
+      "water_connection": true,
+      "water_conn_id": "HMWSSB-HY-APT-CMPLX-315E",
+      "electricity_connection": true,
+      "electricity_meter_no": "TSSPDCL-HY-MET-501005",
+      "drainage_connection": true,
+      "gas_connection": true,
+      "gas_conn_id": "MGL-HY-501005",
+      "reference": "UTIL-HY-2024-501005"
+    }
+  },
+  "environment": {
+    "env_buffers": {
+      "availability": "available",
+      "within_eco_sensitive": false,
+      "within_forest_buffer": false,
+      "flood_zone": "Non-Flood Zone",
+      "reference": "TSPCB-ENV-HY-2024-E"
+    },
+    "restriction_zones": {
+      "availability": "available",
+      "within_crz": false,
+      "within_defence": false,
+      "within_heritage": false,
+      "within_airport_funnel": false,
+      "reference": "MOEF-RZ-HY-2024"
+    }
+  },
+  "infrastructure": {
+    "networks": {
+      "availability": "na",
+      "remarks": "N/A — Infrastructure network and ROW buffer mapping is applicable at building/complex level, not individual flat unit. Refer to parent building record.",
+      "reference": null
+    }
+  },
+  "welfare": {
+    "service_linkages": {
+      "availability": "na",
+      "remarks": "N/A — Owner falls outside eligible income bracket for applicable welfare schemes. No means-tested welfare linkages applicable to this property unit.",
+      "reference": null
+    }
+  },
+  "judicial": {
+    "litigation": {
+      "availability": "available",
+      "pending_cases": 0,
+      "court_stays": false,
+      "last_checked": "2024-01-15",
+      "reference": "ECOURT-TS-HY-2024-E"
+    }
+  },
+  "workflow": {
+    "transaction_logs": {
+      "availability": "available",
+      "last_transaction_date": "2024-01-15",
+      "transaction_type": "Data Refresh",
+      "log_reference": "LOG-HY-PE-2024-005"
+    }
+  }
+}

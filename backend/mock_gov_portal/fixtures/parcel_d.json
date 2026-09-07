@@ -1,0 +1,199 @@
+{
+  "parcel_id": "PD-HY-2024-004",
+  "ulpin": "TS-HY-004-2024-00004",
+  "description": "Large commercial complex under dispute, Kukatpally, Hyderabad",
+  "land_type": "Urban Commercial",
+  "area_sq_m": 1200,
+  "score": 14,
+  "color": "red",
+  "location": {
+    "state": "Telangana",
+    "district": "Hyderabad",
+    "mandal": "Kukatpally",
+    "village": "KPHB Colony",
+    "survey_no": "201/C"
+  },
+  "land_records": {
+    "ulpin": {
+      "availability": "available",
+      "value": "TS-HY-004-2024-00004",
+      "survey_no": "201/C",
+      "village": "KPHB Colony",
+      "mandal": "Kukatpally",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "reference": "DILRMP-TS-HY-00004"
+    },
+    "ror": {
+      "availability": "available",
+      "khata_no": "KH-HY-2024-33210",
+      "owner_name": "Skyline Developers Pvt Ltd",
+      "land_type": "Urban Commercial",
+      "extent_sq_m": 1200,
+      "possession_type": "Owned",
+      "reference": "ROR-TS-HY-2024-33210"
+    }
+  },
+  "registration": {
+    "deeds": {
+      "availability": "available",
+      "deed_no": "REG-HY-2018-022110",
+      "registration_date": "2018-06-08",
+      "consideration_inr": 65000000,
+      "document_type": "Sale Deed",
+      "registered_at": "Sub-Registrar Office, Kukatpally",
+      "reference": "SRO-KKP-2018-022110"
+    },
+    "encumbrances": {
+      "availability": "available",
+      "ec_no": "EC-HY-2024-18900",
+      "period_from": "2010-01-01",
+      "period_to": "2024-01-01",
+      "active_encumbrances": true,
+      "transactions": [
+        {"type": "Mortgage", "year": 2018, "status": "Active"},
+        {"type": "Attachment Order", "year": 2023, "status": "Active"}
+      ],
+      "reference": "EC-SRO-KKP-2024-18900"
+    },
+    "mortgage": {
+      "availability": "nd",
+      "remarks": "Mortgage details classified as Not Disclosed. Under judicial attachment order — access restricted pending court order. Refer: Hyderabad HC WP/2023/4412.",
+      "reference": null
+    },
+    "valuation": {
+      "availability": "nd",
+      "remarks": "Valuation disputed in court. Official valuation withheld pending HC order. Refer: Hyderabad HC WP/2023/4412.",
+      "reference": null
+    }
+  },
+  "planning": {
+    "master_plan": {
+      "availability": "available",
+      "plan_reference": "HMDA-MP-2031",
+      "use_zone": "C2 - Wholesale Commercial",
+      "fsi_permitted": 4.0,
+      "reference": "HMDA-MP2031-HY-C2"
+    },
+    "building_approval": {
+      "availability": "nd",
+      "remarks": "Building approval records under GHMC review following complaint. Not disclosed pending internal audit.",
+      "reference": null
+    },
+    "occupancy_certificate": {
+      "availability": "nd",
+      "remarks": "OC not issued. Building occupied without OC — under GHMC enforcement notice. File: GHMC-ENF-KKP-2023-0041.",
+      "reference": null
+    },
+    "zoning": {
+      "availability": "available",
+      "land_use": "Commercial",
+      "zone_code": "C2",
+      "permissible_uses": ["Wholesale Trade", "Warehousing", "Office"],
+      "reference": "HMDA-ZONING-2024-HY"
+    }
+  },
+  "municipal": {
+    "property_tax": {
+      "availability": "available",
+      "assessment_no": "GHMC-PT-HY-2024-401122",
+      "annual_tax_inr": 320000,
+      "last_paid_date": "2022-04-15",
+      "arrears_inr": 640000,
+      "payment_status": "Arrears (2 years)",
+      "reference": "GHMC-TAX-2024-401122"
+    },
+    "valuation": {
+      "availability": "nd",
+      "remarks": "Valuation under dispute. Not available until resolution of WP/2023/4412.",
+      "reference": null
+    }
+  },
+  "survey": {
+    "cadastral": {
+      "availability": "available",
+      "survey_no": "201/C",
+      "area_sq_m": 1200,
+      "boundaries": {
+        "north": "Survey No 200",
+        "south": "KPHB Main Road",
+        "east": "Survey No 202",
+        "west": "Survey No 201/B"
+      },
+      "map_reference": "TSSDI-CAD-HY-2022-201C"
+    },
+    "imagery": {
+      "availability": "nd",
+      "remarks": "Georeferenced imagery access restricted — court attachment order HC WP/2023/4412 has placed a hold on imagery dissemination for this parcel pending resolution.",
+      "reference": null
+    },
+    "change_detection": {
+      "availability": "nd",
+      "remarks": "Change detection data withheld — part of active GHMC enforcement file GHMC-ENF-KKP-2023-0041. Not disclosed pending enforcement proceedings.",
+      "reference": null
+    }
+  },
+  "utilities": {
+    "infrastructure": {
+      "availability": "available",
+      "water_connection": true,
+      "water_conn_id": "HMWSSB-HY-2018-122110",
+      "electricity_connection": true,
+      "electricity_meter_no": "TSSPDCL-HY-MET-401122",
+      "drainage_connection": true,
+      "reference": "UTIL-HY-2024-401122"
+    }
+  },
+  "environment": {
+    "env_buffers": {
+      "availability": "available",
+      "within_eco_sensitive": false,
+      "within_forest_buffer": false,
+      "flood_zone": "Non-Flood Zone",
+      "reference": "TSPCB-ENV-HY-2024-D"
+    },
+    "restriction_zones": {
+      "availability": "available",
+      "within_crz": false,
+      "within_defence": false,
+      "within_heritage": false,
+      "within_airport_funnel": false,
+      "reference": "MOEF-RZ-HY-2024"
+    }
+  },
+  "infrastructure": {
+    "networks": {
+      "availability": "available",
+      "road_type": "BT Road",
+      "road_width_m": 12,
+      "row_buffer_m": 3,
+      "nearest_road": "KPHB Main Road",
+      "reference": "PWD-HY-ROW-2024-D"
+    }
+  },
+  "welfare": {
+    "service_linkages": {
+      "availability": "na",
+      "remarks": "Commercial property — welfare linkages not applicable.",
+      "reference": null
+    }
+  },
+  "judicial": {
+    "litigation": {
+      "availability": "available",
+      "pending_cases": 2,
+      "court_stays": true,
+      "case_summary": "HC WP/2023/4412 — Property attachment order active. Sale/transfer of property stayed.",
+      "last_checked": "2024-01-15",
+      "reference": "ECOURT-TS-HY-WP-2023-4412"
+    }
+  },
+  "workflow": {
+    "transaction_logs": {
+      "availability": "available",
+      "last_transaction_date": "2024-01-15",
+      "transaction_type": "Flag: Judicial Hold",
+      "log_reference": "LOG-HY-PD-2024-004"
+    }
+  }
+}

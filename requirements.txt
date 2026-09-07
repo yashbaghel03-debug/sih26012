@@ -1,0 +1,17 @@
+# Web framework
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-dotenv==1.0.1
+
+# Spatial / GIS (Phase 7 onward)
+geopandas==0.14.4
+shapely==2.0.4
+pyproj==3.6.1
+psycopg2-binary==2.9.9
+
+# Data
+pydantic==2.7.1
+
+# Utilities
+httpx==0.27.0
+python-multipart==0.0.9

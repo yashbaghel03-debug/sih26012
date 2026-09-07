@@ -1,0 +1,212 @@
+{
+  "parcel_id": "PB-HY-2024-002",
+  "ulpin": "TS-HY-002-2024-00002",
+  "description": "Mixed-use commercial plot, Begumpet, Hyderabad",
+  "land_type": "Urban Commercial",
+  "area_sq_m": 450,
+  "score": 17,
+  "color": "yellow",
+  "location": {
+    "state": "Telangana",
+    "district": "Hyderabad",
+    "mandal": "Begumpet",
+    "village": "Begumpet",
+    "survey_no": "45/B"
+  },
+  "land_records": {
+    "ulpin": {
+      "availability": "available",
+      "value": "TS-HY-002-2024-00002",
+      "survey_no": "45/B",
+      "village": "Begumpet",
+      "mandal": "Begumpet",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "reference": "DILRMP-TS-HY-00002"
+    },
+    "ror": {
+      "availability": "available",
+      "khata_no": "KH-HY-2024-8832",
+      "owner_name": "Priya Nair Enterprises LLP",
+      "land_type": "Urban Commercial",
+      "extent_sq_m": 450,
+      "possession_type": "Leasehold",
+      "reference": "ROR-TS-HY-2024-8832"
+    }
+  },
+  "registration": {
+    "deeds": {
+      "availability": "available",
+      "deed_no": "REG-HY-2021-009102",
+      "registration_date": "2021-07-22",
+      "consideration_inr": 22000000,
+      "document_type": "Lease Deed",
+      "registered_at": "Sub-Registrar Office, Begumpet",
+      "reference": "SRO-BGP-2021-009102"
+    },
+    "encumbrances": {
+      "availability": "available",
+      "ec_no": "EC-HY-2024-3310",
+      "period_from": "2005-01-01",
+      "period_to": "2024-01-01",
+      "active_encumbrances": true,
+      "transactions": [
+        {"type": "Mortgage", "year": 2021, "status": "Active"}
+      ],
+      "reference": "EC-SRO-BGP-2024-3310"
+    },
+    "mortgage": {
+      "availability": "nd",
+      "remarks": "Mortgage record exists but bank details are not disclosed via this portal. Contact lender directly.",
+      "reference": null
+    },
+    "valuation": {
+      "availability": "nd",
+      "remarks": "Circle rate valuation under revision — Hyderabad district collector review pending. Official valuation not disclosed until revision is finalised.",
+      "reference": null
+    }
+  },
+  "planning": {
+    "master_plan": {
+      "availability": "available",
+      "plan_reference": "HMDA-MP-2031",
+      "use_zone": "C1 - Local Commercial",
+      "fsi_permitted": 3.0,
+      "reference": "HMDA-MP2031-HY-C1"
+    },
+    "building_approval": {
+      "availability": "available",
+      "permit_no": "GHMC-BP-2021-HY-14430",
+      "approved_date": "2021-05-10",
+      "approved_area_sqm": 400,
+      "floors_approved": 4,
+      "approved_by": "GHMC Begumpet Circle",
+      "reference": "GHMC-BP-BGP-2021-14430"
+    },
+    "occupancy_certificate": {
+      "availability": "available",
+      "oc_no": "GHMC-OC-2022-HY-07891",
+      "issued_date": "2022-09-15",
+      "building_use": "Commercial",
+      "floors_constructed": 4,
+      "reference": "GHMC-OC-BGP-2022-07891"
+    },
+    "zoning": {
+      "availability": "available",
+      "land_use": "Commercial",
+      "zone_code": "C1",
+      "permissible_uses": ["Retail", "Office", "Restaurant", "Hotel"],
+      "prohibited_uses": ["Heavy Industry", "Hazardous Storage"],
+      "reference": "HMDA-ZONING-2024-HY"
+    }
+  },
+  "municipal": {
+    "property_tax": {
+      "availability": "available",
+      "assessment_no": "GHMC-PT-HY-2024-209876",
+      "annual_tax_inr": 87600,
+      "last_paid_date": "2023-12-10",
+      "arrears_inr": 43800,
+      "payment_status": "Arrears Pending",
+      "reference": "GHMC-TAX-2024-209876"
+    },
+    "valuation": {
+      "availability": "available",
+      "property_id": "GHMC-HY-209876",
+      "assessed_value_inr": 45000000,
+      "valuation_date": "2023-04-01",
+      "reference": "GHMC-VAL-2023-209876"
+    }
+  },
+  "survey": {
+    "cadastral": {
+      "availability": "available",
+      "survey_no": "45/B",
+      "area_sq_m": 450,
+      "boundaries": {
+        "north": "Survey No 44",
+        "south": "Airport Road",
+        "east": "Survey No 46",
+        "west": "Survey No 45/A"
+      },
+      "map_reference": "TSSDI-CAD-HY-2022-45B"
+    },
+    "imagery": {
+      "availability": "available",
+      "image_date": "2023-09-20",
+      "resolution_cm": 30,
+      "source": "NRSC Bhuvan",
+      "layer_reference": "NRSC-IMG-HY-2023-Q3"
+    },
+    "change_detection": {
+      "availability": "nd",
+      "remarks": "Change detection data exists but is not disclosed — plot flagged under GHMC enforcement review. Data withheld pending inspection outcome.",
+      "reference": null
+    }
+  },
+  "utilities": {
+    "infrastructure": {
+      "availability": "available",
+      "water_connection": true,
+      "water_conn_id": "HMWSSB-HY-2021-099102",
+      "electricity_connection": true,
+      "electricity_meter_no": "TSSPDCL-HY-MET-209876",
+      "drainage_connection": true,
+      "gas_connection": false,
+      "reference": "UTIL-HY-2024-209876"
+    }
+  },
+  "environment": {
+    "env_buffers": {
+      "availability": "available",
+      "within_eco_sensitive": false,
+      "within_forest_buffer": false,
+      "flood_zone": "Non-Flood Zone",
+      "reference": "TSPCB-ENV-HY-2024-B"
+    },
+    "restriction_zones": {
+      "availability": "available",
+      "within_crz": false,
+      "within_defence": false,
+      "within_heritage": false,
+      "within_airport_funnel": true,
+      "airport_funnel_remarks": "Within Rajiv Gandhi International Airport height restriction zone. Max permissible height: 45m.",
+      "reference": "AAI-HY-RZ-2024"
+    }
+  },
+  "infrastructure": {
+    "networks": {
+      "availability": "available",
+      "road_type": "NH",
+      "road_width_m": 18,
+      "row_buffer_m": 15,
+      "nearest_road": "Airport Road, Begumpet",
+      "reference": "PWD-HY-ROW-2024-B"
+    }
+  },
+  "welfare": {
+    "service_linkages": {
+      "availability": "na",
+      "remarks": "Commercial property — welfare scheme linkages not applicable.",
+      "reference": null
+    }
+  },
+  "judicial": {
+    "litigation": {
+      "availability": "available",
+      "pending_cases": 1,
+      "court_stays": false,
+      "case_summary": "Civil suit regarding lease agreement — Hyderabad City Civil Court, CS No 112/2023",
+      "last_checked": "2024-01-15",
+      "reference": "ECOURT-TS-HY-CS-2023-112"
+    }
+  },
+  "workflow": {
+    "transaction_logs": {
+      "availability": "available",
+      "last_transaction_date": "2024-01-15",
+      "transaction_type": "Data Refresh",
+      "log_reference": "LOG-HY-PB-2024-002"
+    }
+  }
+}

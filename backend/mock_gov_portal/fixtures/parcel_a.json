@@ -1,0 +1,220 @@
+{
+  "parcel_id": "PA-HY-2024-001",
+  "ulpin": "TS-HY-001-2024-00001",
+  "description": "Urban residential plot, Banjara Hills, Hyderabad",
+  "land_type": "Urban Residential",
+  "area_sq_m": 200,
+  "score": 21,
+  "color": "green",
+  "location": {
+    "state": "Telangana",
+    "district": "Hyderabad",
+    "mandal": "Khairatabad",
+    "village": "Banjara Hills",
+    "survey_no": "123/A"
+  },
+  "land_records": {
+    "ulpin": {
+      "availability": "available",
+      "value": "TS-HY-001-2024-00001",
+      "survey_no": "123/A",
+      "village": "Banjara Hills",
+      "mandal": "Khairatabad",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "reference": "DILRMP-TS-HY-00001"
+    },
+    "ror": {
+      "availability": "available",
+      "khata_no": "KH-HY-2024-5621",
+      "owner_name": "Rajesh Kumar Mehta",
+      "father_name": "Suresh Kumar Mehta",
+      "land_type": "Urban",
+      "extent_sq_m": 200,
+      "possession_type": "Self Occupied",
+      "reference": "ROR-TS-HY-2024-5621"
+    }
+  },
+  "registration": {
+    "deeds": {
+      "availability": "available",
+      "deed_no": "REG-HY-2019-004521",
+      "registration_date": "2019-03-15",
+      "consideration_inr": 8500000,
+      "document_type": "Sale Deed",
+      "registered_at": "Sub-Registrar Office, Khairatabad",
+      "reference": "SRO-KHR-2019-004521"
+    },
+    "encumbrances": {
+      "availability": "available",
+      "ec_no": "EC-HY-2024-7823",
+      "period_from": "2000-01-01",
+      "period_to": "2024-01-01",
+      "active_encumbrances": false,
+      "transactions": [],
+      "reference": "EC-SRO-KHR-2024-7823"
+    },
+    "mortgage": {
+      "availability": "available",
+      "active_mortgage": false,
+      "lender_name": null,
+      "loan_account": null,
+      "remarks": "No active mortgage on record"
+    },
+    "valuation": {
+      "availability": "available",
+      "circle_rate_per_sqm_inr": 75000,
+      "market_value_inr": 15000000,
+      "valuation_year": "2024-25",
+      "zone": "Zone-II Banjara Hills",
+      "reference": "IGR-TS-HY-CVR-2024"
+    }
+  },
+  "planning": {
+    "master_plan": {
+      "availability": "available",
+      "plan_reference": "HMDA-MP-2031",
+      "use_zone": "R2 - Medium Density Residential",
+      "fsi_permitted": 2.5,
+      "approved_year": 2013,
+      "reference": "HMDA-MP2031-HY-R2"
+    },
+    "building_approval": {
+      "availability": "available",
+      "permit_no": "GHMC-BP-2019-HY-08721",
+      "approved_date": "2019-01-20",
+      "approved_area_sqm": 180,
+      "floors_approved": 2,
+      "approved_by": "GHMC Khairatabad Circle",
+      "reference": "GHMC-BP-KHR-2019-08721"
+    },
+    "occupancy_certificate": {
+      "availability": "available",
+      "oc_no": "GHMC-OC-2020-HY-03210",
+      "issued_date": "2020-06-10",
+      "building_use": "Residential",
+      "floors_constructed": 2,
+      "reference": "GHMC-OC-KHR-2020-03210"
+    },
+    "zoning": {
+      "availability": "available",
+      "land_use": "Residential",
+      "zone_code": "R2",
+      "permissible_uses": ["Residential", "Home Office"],
+      "prohibited_uses": ["Commercial", "Industrial"],
+      "reference": "HMDA-ZONING-2024-HY"
+    }
+  },
+  "municipal": {
+    "property_tax": {
+      "availability": "available",
+      "assessment_no": "GHMC-PT-HY-2024-112345",
+      "annual_tax_inr": 18500,
+      "last_paid_date": "2024-03-01",
+      "arrears_inr": 0,
+      "payment_status": "Clear",
+      "reference": "GHMC-TAX-2024-112345"
+    },
+    "valuation": {
+      "availability": "available",
+      "property_id": "GHMC-HY-112345",
+      "assessed_value_inr": 12000000,
+      "valuation_date": "2023-04-01",
+      "reference": "GHMC-VAL-2023-112345"
+    }
+  },
+  "survey": {
+    "cadastral": {
+      "availability": "available",
+      "survey_no": "123/A",
+      "area_sq_m": 200,
+      "boundaries": {
+        "north": "Road 12, Banjara Hills",
+        "south": "Survey No 123/B",
+        "east": "Survey No 124",
+        "west": "Road 10, Banjara Hills"
+      },
+      "map_reference": "TSSDI-CAD-HY-2022-123A"
+    },
+    "imagery": {
+      "availability": "available",
+      "image_date": "2023-11-15",
+      "resolution_cm": 30,
+      "source": "NRSC Bhuvan",
+      "layer_reference": "NRSC-IMG-HY-2023-Q4"
+    },
+    "change_detection": {
+      "availability": "available",
+      "last_compared": "2024-01-10",
+      "change_detected": false,
+      "comparison_period": "2023-2024",
+      "reference": "NRSC-CD-HY-2024-001"
+    }
+  },
+  "utilities": {
+    "infrastructure": {
+      "availability": "available",
+      "water_connection": true,
+      "water_conn_id": "HMWSSB-HY-2019-045621",
+      "electricity_connection": true,
+      "electricity_meter_no": "TSSPDCL-HY-MET-112345",
+      "drainage_connection": true,
+      "gas_connection": false,
+      "reference": "UTIL-HY-2024-112345"
+    }
+  },
+  "environment": {
+    "env_buffers": {
+      "availability": "available",
+      "within_eco_sensitive": false,
+      "within_forest_buffer": false,
+      "flood_zone": "Non-Flood Zone",
+      "reference": "TSPCB-ENV-HY-2024"
+    },
+    "restriction_zones": {
+      "availability": "available",
+      "within_crz": false,
+      "within_defence": false,
+      "within_heritage": false,
+      "within_airport_funnel": false,
+      "remarks": "No restriction zone applicable",
+      "reference": "MOEF-RZ-HY-2024"
+    }
+  },
+  "infrastructure": {
+    "networks": {
+      "availability": "available",
+      "road_type": "BT Road",
+      "road_width_m": 9,
+      "row_buffer_m": 2,
+      "nearest_road": "Road 12, Banjara Hills",
+      "reference": "PWD-HY-ROW-2024"
+    }
+  },
+  "welfare": {
+    "service_linkages": {
+      "availability": "available",
+      "ration_card_linked": true,
+      "aadhar_seeded": true,
+      "active_schemes": ["PM Awas Yojana - Verified"],
+      "reference": "WELFARE-TS-HY-2024-001"
+    }
+  },
+  "judicial": {
+    "litigation": {
+      "availability": "available",
+      "pending_cases": 0,
+      "court_stays": false,
+      "last_checked": "2024-01-15",
+      "reference": "ECOURT-TS-HY-2024"
+    }
+  },
+  "workflow": {
+    "transaction_logs": {
+      "availability": "available",
+      "last_transaction_date": "2024-01-15",
+      "transaction_type": "Data Refresh",
+      "log_reference": "LOG-HY-PA-2024-001"
+    }
+  }
+}
