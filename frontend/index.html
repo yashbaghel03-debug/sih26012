@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIH 2026 — Parcel Assignment WebGIS</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">SIH 2026 · Problem Statement 26012</div>
+      <h1>Parcel Assignment & WebGIS Dashboard</h1>
+      <p>21-category government-data retrieval, spatial assignment and PostGIS-backed geographic visualization.</p>
+    </div>
+    <div class="health" id="healthBadge">Checking API…</div>
+  </header>
+  <main class="container">
+    <section class="hero-grid">
+      <div class="panel api-panel">
+        <div class="section-title"><span>API Connection</span><span class="dot" id="apiDot"></span></div>
+        <div class="api-row"><input id="apiBase" value="http://localhost:8000" aria-label="API base URL" /><button id="connectBtn">Connect</button></div>
+        <small id="apiMessage">Frontend calls the FastAPI endpoints.</small>
+      </div>
+      <div class="panel stat-card"><span>Parcels</span><strong id="parcelCount">—</strong><small>Demo assignment fixtures</small></div>
+      <div class="panel stat-card"><span>Categories</span><strong>21</strong><small>Registry-driven</small></div>
+      <div class="panel stat-card"><span>Spatial levels</span><strong>5</strong><small>1km → 0.1m²</small></div>
+    </section>
+    <section class="panel map-launch"><div><div class="eyebrow">Real geographic layer</div><h2>India WebGIS</h2><p class="muted">Open the geographic view: government India state boundaries from PostGIS, OSM basemap, and a viewport-driven 1km → 0.1m² grid.</p></div><a class="primary" href="map.html">Open India WebGIS →</a></section>
+    <section class="panel">
+      <div class="section-heading"><div><div class="eyebrow">Assignment Engine</div><h2>Choose a parcel</h2></div><span class="muted" id="selectedLabel">No parcel selected</span></div>
+      <div id="parcelGrid" class="parcel-grid"><div class="loading">Loading parcels…</div></div>
+    </section>
+    <section id="parcelDetails" class="dashboard-grid hidden">
+      <div class="panel details-panel"><div class="section-heading"><div><div class="eyebrow">Parcel details</div><h2 id="parcelTitle">—</h2></div><span id="gradeBadge" class="grade">—</span></div><div class="details-list" id="parcelMeta"></div></div>
+      <div class="panel score-panel"><div class="eyebrow">Usable category score</div><div class="score"><span id="scoreValue">—</span><span>/21</span></div><div class="score-track"><div id="scoreFill"></div></div><div class="score-stats"><div><strong id="usableCount">—</strong><span>usable</span></div><div><strong id="naCount">—</strong><span>N/A</span></div><div><strong id="ndCount">—</strong><span>N/D</span></div></div></div>
+    </section>
+    <section id="categoriesPanel" class="panel hidden"><div class="section-heading"><div><div class="eyebrow">Phase 4–6</div><h2>21-category retrieval matrix</h2></div><div class="legend"><span class="chip usable">Usable</span><span class="chip na">N/A</span><span class="chip nd">N/D</span></div></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Category</th><th>Value</th><th>Status</th><th>Source</th><th>Retrieved</th></tr></thead><tbody id="categoryBody"></tbody></table></div></section>
+    <section class="two-col"><div class="panel"><div class="section-heading"><div><div class="eyebrow">Phase 7</div><h2>Spatial cell explorer</h2></div></div><div class="api-row"><input id="cellId" value="ALU-1km-xp0-yp0" /><button id="cellBtn">Inspect</button></div><pre id="cellOutput" class="output">Enter a cell ID to inspect its deterministic lattice hierarchy.</pre></div><div class="panel"><div class="section-heading"><div><div class="eyebrow">Phase 8</div><h2>Round processing</h2></div></div><p class="muted">Process each spatial level completely before advancing to the next level.</p><button id="roundBtn" class="primary">Run demo rounds</button><div id="roundOutput" class="rounds"><div class="round-empty">No round run yet.</div></div></div></section>
+    <section class="panel architecture"><div class="eyebrow">End-to-end flow</div><div class="flow"><span>Browser Map</span><b>→</b><span>FastAPI</span><b>→</b><span>PostGIS</span><b>→</b><span>Real India boundaries</span><b>+</b><span>ALU grid</span></div><p class="muted">Cadastral parcel geometry is intentionally not fabricated. Import a state-authority/BhuNaksha dataset into the PostGIS cadastral_parcels table when licensed data is available.</p></section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

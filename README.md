@@ -2,122 +2,107 @@
 
 ## AI-Based Automated Urban Parcel Mapping and Cadastral Feature Extraction System
 
-> Smart India Hackathon 2026 | Team Project
+This repository implements a deterministic GIS/WebGIS pipeline for spatial indexing, government-data integration, parcel assignment and geographic visualization.
 
----
+> **Important:** the existing `mock_gov_portal` data is fictional demo data. The geographic map is now backed by real government administrative boundary geometry imported into PostGIS. Cadastral parcel polygons are not fabricated; they must be imported from an authorized state land-record/BhuNaksha dataset when available.
 
-## What This System Does
+## Current WebGIS architecture
 
-A **deterministic GIS-based spatial information integration and parcel-addressing system** that:
-
-- Covers India in standardized spatial units (ALUs) from 1 km² down to 0.1 m²
-- Assigns deterministic unique identifiers to every spatial unit
-- Connects to authoritative government data sources
-- Grades each parcel by how many of 21 defined information categories are available
-- Displays everything through an interactive WebGIS
-
-**No AI/LLM is used in the core system.** Everything is GIS, spatial queries, and rule-based deterministic logic.
-
----
-
-## Repository Structure
-
-```
-sih2026/
-├── backend/
-│   ├── mock_gov_portal/       ← Yash: Phase 1 — Demo government data API
-│   ├── spatial_indexing/      ← Yash: Phase 7 — ALU lattice + hierarchy math
-│   ├── retrieval_engine/      ← Yash: Phase 6 — Connector + assignment engine
-│   └── source_registry/       ← Yash: Phase 2 — Category → source mapping
-└── frontend/                  ← Team: WebGIS (React + TypeScript + MapLibre)
+```text
+Browser / Leaflet WebGIS
+        ↓
+FastAPI spatial API
+        ↓
+PostgreSQL + PostGIS
+   ├── real India state/UT boundaries
+   ├── cadastral_parcels (real source data only)
+   └── viewport-generated ALU grid
+        ↓
+1 km → 100 m → 10 m → 1 m → 0.1 m²
 ```
 
----
+## Real geographic data
 
-## Backend: Mock Government Portal
+The importer uses the Government of India's BharatMapService state boundary layer and stores its GeoJSON geometry in PostGIS with source metadata. The service is based on Survey of India administrative boundary data.
 
-> **FICTIONAL DEMO INFRASTRUCTURE — NOT A REAL GOVERNMENT PORTAL**
+Survey of India also publishes administrative boundary databases and states that its published digital boundary data are the standard for political maps of India.
 
-A FastAPI service simulating structured government department APIs.
-Used as the data source target during SIH demo.
+- Survey of India Online Maps: https://onlinemaps.surveyofindia.gov.in/
+- Government India BharatMapService: https://mapservice.gov.in/gismapservice/rest/services/BharatMapService/Admin_Boundary_District/MapServer
+- Bhu-Naksha cadastral mapping solution: https://bhunaksha.nic.in/
 
-### Run Locally
+## Run the real WebGIS
+
+### 1. Install Python dependencies
 
 ```bash
-cd backend/mock_gov_portal
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r ../../requirements.txt
-uvicorn main:app --reload --port 8001
+pip install -r requirements.txt
 ```
 
-Swagger docs: [http://localhost:8001/docs](http://localhost:8001/docs)
+### 2. Start PostGIS
 
-### Demo Parcels
+```bash
+docker compose up -d postgis
+```
 
-| Parcel ID        | Score | Color  | Notes                        |
-|-----------------|-------|--------|------------------------------|
-| PA-HY-2024-001  | 21/21 | GREEN  | All categories available     |
-| PB-HY-2024-002  | 17/21 | YELLOW | Some categories missing      |
-| PC-HY-2024-003  | 12/21 | RED    | Agricultural — many N/A      |
-| PD-HY-2024-004  | 14/21 | RED    | Commercial — some N/D        |
-| PE-HY-2024-005  | 16/21 | YELLOW | Mixed use — some N/A         |
+### 3. Import real India state/UT boundaries
 
----
+```bash
+python -m backend.postgis.import_india_admin
+```
 
-## 21 Information Categories
+This downloads the current features exposed by the configured Government of India GIS endpoint. The importer records `gov.in:BharatMapService` as the source.
 
-| # | Category                          | Source Department     |
-|---|-----------------------------------|-----------------------|
-| 1 | ULPIN                             | Land Records          |
-| 2 | Cadastral Map / Parcel Boundary   | Survey                |
-| 3 | Georeferenced Imagery             | Survey / NRSC         |
-| 4 | Record of Rights (RoR)            | Land Records          |
-| 5 | Registration Deeds / Title Chain  | Registration          |
-| 6 | Master Plan / Town Layout         | Planning / HMDA       |
-| 7 | Building Plan Approvals           | Planning / GHMC       |
-| 8 | Completion / Occupancy Certs      | Planning / GHMC       |
-| 9 | Encumbrances / Charges            | Registration          |
-|10 | Bank Mortgages / Liens            | Registration / Banks  |
-|11 | Land Use / Zoning                 | Planning              |
-|12 | Utility Infrastructure            | Utilities             |
-|13 | Property Taxation / Arrears       | Municipal             |
-|14 | Valuation / Circle Rates          | Municipal / Revenue   |
-|15 | Infrastructure Networks / ROW     | PWD / Infrastructure  |
-|16 | Environmental Buffers / Forest    | Environment / Forest  |
-|17 | Restriction Zones (CRZ/Defence)   | Multiple Agencies     |
-|18 | Service Linkages / Welfare        | Social Welfare        |
-|19 | Pending Litigation / Court Stays  | Judicial              |
-|20 | Satellite / Drone Change Detection| Survey / NRSC         |
-|21 | Workflow Logs / Transaction Track | Internal System       |
+### 4. Start FastAPI
 
----
+```bash
+uvicorn backend.api.main:app --host 0.0.0.0 --port 8000
+```
 
-## Color Grading
+### 5. Start the frontend
 
-| Color  | Usable Categories |
-|--------|-------------------|
-| GREEN  | 18–21             |
-| YELLOW | 15–17             |
-| RED    | < 15              |
-| WHITE  | Unvisited / Unassigned |
+```bash
+python -m http.server 3000 --directory frontend
+```
 
----
+Open:
 
-## N/A vs N/D
+`http://localhost:3000/map.html`
 
-- **N/A (Not Applicable):** Category genuinely does not apply to this parcel type.
-- **N/D (Not Disclosed):** Information exists but is restricted / not accessible.
+The map uses a real OpenStreetMap basemap and requests the India boundary and visible grid from FastAPI/PostGIS. It does **not** create a full-country grid in the browser.
 
-Neither counts toward the usable score.
+## Zoom-dependent spatial grid
 
----
+| Zoom | Logical cell | Area |
+|---|---:|---:|
+| 10+ | 1000 m × 1000 m | 1 km² |
+| 14+ | 100 m × 100 m | 10,000 m² |
+| 17+ | 10 m × 10 m | 100 m² |
+| 20+ | 1 m × 1 m | 1 m² |
+| 24 | 0.1 m × 1 m | 0.1 m² |
 
-## Tech Stack
+The 0.1 m² level is the project's **logical finest indexing unit**. It is not a claim that the underlying cadastral survey has 10 cm positional accuracy.
 
-| Layer     | Technology                              |
-|-----------|-----------------------------------------|
-| Spatial DB| PostgreSQL + PostGIS                    |
-| GIS Python| GeoPandas, Shapely, PyProj, GDAL        |
-| Backend   | FastAPI (Python)                        |
-| Frontend  | React + TypeScript + MapLibre GL JS     |
+The API generates only the current viewport cells and caps a response at 1,500 cells. This prevents a 0.1 m² full-country render from becoming computationally meaningless.
+
+## Cadastral data policy
+
+Real cadastral parcel geometry is state-specific. Do not replace it with rectangles, demo polygons or guessed boundaries. Put authorized state/BhuNaksha/land-record geometry into `cadastral_parcels`, preserve the source and official parcel identifier, and then expose it through a PostGIS spatial endpoint.
+
+See [`backend/postgis/README.md`](backend/postgis/README.md) for the import workflow.
+
+## Existing assignment pipeline
+
+The project also contains the deterministic 21-category retrieval/normalization/resolution/scoring pipeline and the mock government portal used for controlled demonstrations. Those fixtures remain explicitly labeled as fictional demo data and are separate from the real geographic layer.
+
+## Spatial hierarchy
+
+The backend's deterministic lattice supports:
+
+- `1km`
+- `100m`
+- `10m`
+- `1m`
+- `0.1m2` represented as `0.1m × 1m`
+
+Each cell has a deterministic ID and parent/ancestor relationships.

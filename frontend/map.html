@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SIH 26012 — India WebGIS</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="map.css">
+</head>
+<body>
+  <aside class="panel">
+    <div class="eyebrow">SIH 2026 · PS 26012</div>
+    <h1>India WebGIS</h1>
+    <p>Real geographic basemap + deterministic zoom-dependent ALU grid.</p>
+    <div id="zoomInfo">Zoom —</div>
+    <div id="levelInfo">Level —</div>
+    <div class="levels">
+      <span>1 km</span><span>100 m</span><span>10 m</span><span>1 m</span><span>0.1 m²</span>
+    </div>
+    <p class="note">The finest backend unit is 0.1 m × 1 m = 0.1 m². It is a logical indexing unit, not a claim of survey accuracy.</p>
+    <a href="index.html">← Dashboard</a>
+  </aside>
+  <div id="map"></div>
+  <div id="cellPopup" class="popup"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="map.js"></script>
+</body>
+</html>
