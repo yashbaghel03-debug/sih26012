@@ -1,0 +1,17 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: sih26012-postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sih26012
+      POSTGRES_USER: sih
+      POSTGRES_PASSWORD: sih
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+      - ./backend/postgis/init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+
+volumes:
+  postgis_data:
