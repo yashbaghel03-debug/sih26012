@@ -1,6 +1,7 @@
 /* Bootstrap the India WebGIS with the LGD-derived national political boundary.
- * This boundary includes the J&K/Ladakh depiction used for the requested map,
- * including the POK and Aksai Chin extent, while leaving the basemap unchanged.
+ * Keep the existing map visible immediately, then replace its clipping geometry
+ * with the national extent that includes the J&K/Ladakh depiction requested by
+ * the project (including the POK and Aksai Chin extent).
  */
 (() => {
   'use strict';
@@ -49,35 +50,39 @@
     try { cached = normalize(JSON.parse(localStorage.getItem(legacyKey) || 'null')); } catch (_) {}
   }
 
+  // Never make the map wait for the large national polygon when a usable
+  // previous boundary is already cached. The national polygon is fetched next.
   if (cached) {
     install(cached);
     loadMap();
   }
 
   (async () => {
-    try {
-      const geo = await getJson(nationalBoundary);
-      if (geo) {
-        try { localStorage.setItem(cacheKey, JSON.stringify(geo)); } catch (_) {}
-        install(geo);
-        if (!cached) loadMap();
-        return;
-      }
-    } catch (error) {
-      console.warn('LGD-derived India national boundary unavailable', error);
-    }
-
+    // Prefer the local FastAPI boundary for immediate first paint when there is
+    // no cache, then replace it with the broader national boundary in the
+    // background. This keeps the map responsive while restoring the claimed extent.
     if (!cached) {
       try {
         const geo = await getJson(apiBoundary);
         if (geo) {
           install(geo);
           loadMap();
-          return;
+          cached = geo;
         }
       } catch (error) {
         console.warn('Fallback India boundary unavailable', error);
       }
+    }
+
+    try {
+      const geo = await getJson(nationalBoundary);
+      if (geo) {
+        try { localStorage.setItem(cacheKey, JSON.stringify(geo)); } catch (_) {}
+        install(geo);
+        return;
+      }
+    } catch (error) {
+      console.warn('LGD-derived India national boundary unavailable', error);
     }
 
     if (!cached) {
