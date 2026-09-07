@@ -13,6 +13,8 @@ let indiaBoundsBoxes=[];
 let hoveredCode=null;
 let renderHandle=0;
 let renderTimer=0;
+let hoverTimer=0;
+let hoverRequest=0;
 
 const R=6378137;
 const WORLD=2*Math.PI*R;
@@ -22,23 +24,24 @@ const ROOT_COLS=4000;
 const BASE36='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const DIGITS='0123456789';
-const MAX_RENDER_CELLS=45000;
+const MAX_RENDER_CELLS=35000;
+const MIN_CELL_PIXELS=0.9;
 
 const LEVELS=[
-  {name:'500km',display:'500 km',side:500000,depth:0},
-  {name:'250km',display:'250 km',side:250000,depth:0},
-  {name:'100km',display:'100 km',side:100000,depth:0},
-  {name:'50km',display:'50 km',side:50000,depth:0},
-  {name:'10km',display:'10 km',side:10000,depth:0},
-  {name:'1km2',display:'1 km²',side:1000,depth:0},
-  {name:'0.01km2',display:'0.01 km²',side:100,depth:1},
-  {name:'0.0001km2',display:'0.0001 km²',side:10,depth:2},
-  {name:'1m2',display:'1 m²',side:1,depth:3},
-  {name:'0.1m2',display:'0.1 m²',side:Math.sqrt(0.1),depth:4}
+  {name:'500km',display:'500 km',side:500000,depth:0,triggerZoom:4},
+  {name:'250km',display:'250 km',side:250000,depth:0,triggerZoom:6},
+  {name:'100km',display:'100 km',side:100000,depth:0,triggerZoom:8},
+  {name:'50km',display:'50 km',side:50000,depth:0,triggerZoom:9},
+  {name:'10km',display:'10 km',side:10000,depth:0,triggerZoom:10},
+  {name:'1km2',display:'1 km²',side:1000,depth:0,triggerZoom:12},
+  {name:'0.01km2',display:'0.01 km²',side:100,depth:1,triggerZoom:15},
+  {name:'0.0001km2',display:'0.0001 km²',side:10,depth:2,triggerZoom:18},
+  {name:'1m2',display:'1 m²',side:1,depth:3,triggerZoom:22},
+  {name:'0.1m2',display:'0.1 m²',side:Math.sqrt(0.1),depth:4,triggerZoom:29}
 ];
 
 const CHILD_TOKENS=[];
-for(const a of BASE36)for(const b of BASE36){const ok=(/[A-Z]/.test(a)&&/\d/.test(b))||(/\d/.test(a)&&/[A-Z]/.test(b));if(ok)CHILD_TOKENS.push(a+b);}
+for(const a of BASE36)for(const b of BASE36){const valid=(/[A-Z]/.test(a)&&/\d/.test(b))||(/\d/.test(a)&&/[A-Z]/.test(b));if(valid)CHILD_TOKENS.push(a+b);}
 const CHILD_TOKEN_INDEX=new Map(CHILD_TOKENS.map((v,i)=>[v,i]));
 const FINAL_PLACEMENTS=[[0,0],[0.34,0],[0.68,0],[0,0.34],[0.34,0.34],[0.68,0.34],[0,0.68],[0.34,0.68],[0.68,0.68],[0.34,0.34]];
 
@@ -53,15 +56,13 @@ function worldPx(z){return 256*2**z;}
 function screenXY(mx,my,z,origin){const s=worldPx(z);return [(mx/WORLD+0.5)*s-origin.x,(0.5-my/WORLD)*s-origin.y];}
 function boundsFromMercator(x1,y1,x2,y2){const a=inv(Math.min(x1,x2),Math.min(y1,y2)),b=inv(Math.max(x1,x2),Math.max(y1,y2));return [[a[0],a[1]],[b[0],b[1]]];}
 function cellGeometry(ix,iy,path){let x=ROOT_ORIGIN_X+ix*1000,y=ROOT_ORIGIN_Y+iy*1000,side=1000;for(let d=0;d<path.length;d++){const k=path[d];if(d<3){const child=side/10;x+=(k%10)*child;y+=Math.floor(k/10)*child;side=child;}else{const [ox,oy]=FINAL_PLACEMENTS[k];side=Math.sqrt(0.1);x+=ox;y+=oy;}}return {x1:x,y1:y,x2:x+side,y2:y+side,side,area:side*side};}
-function currentZoomLevel(){let chosen=LEVELS[0];for(const l of LEVELS)if(map.getZoom()>=l.depth*4+8)chosen=l;return chosen;}
+function currentLevel(){let selected=LEVELS[0];for(const level of LEVELS)if(map.getZoom()>=level.triggerZoom)selected=level;return selected;}
 function projectedCellSize(level){return level.side*worldPx(map.getZoom())/WORLD;}
-function visibleCellsForLevel(level){const b=map.getBounds(),sw=merc(b.getSouth(),b.getWest()),ne=merc(b.getNorth(),b.getEast());const nx=Math.ceil((ne[0]-sw[0])/level.side)+4,ny=Math.ceil((ne[1]-sw[1])/level.side)+4;return nx*ny*(level.depth===4?10:1);}
-function chooseRenderLevel(){let desired=currentZoomLevel();let idx=LEVELS.indexOf(desired);for(;idx>=0;idx--){const l=LEVELS[idx];if(projectedCellSize(l)>=0.9&&visibleCellsForLevel(l)<=MAX_RENDER_CELLS)return l;}return LEVELS[0];}
-
+function visibleCount(level){const b=map.getBounds(),sw=merc(b.getSouth(),b.getWest()),ne=merc(b.getNorth(),b.getEast());if(level.depth<4){const nx=Math.ceil((ne[0]-sw[0])/level.side)+4,ny=Math.ceil((ne[1]-sw[1])/level.side)+4;return nx*ny;}const parentSize=1;const nx=Math.ceil((ne[0]-sw[0])/parentSize)+4,ny=Math.ceil((ne[1]-sw[1])/parentSize)+4;return nx*ny*10;}
+function chooseRenderLevel(){const desired=currentLevel(),start=LEVELS.indexOf(desired);for(let i=start;i>=0;i--){const level=LEVELS[i];if(projectedCellSize(level)>=MIN_CELL_PIXELS&&visibleCount(level)<=MAX_RENDER_CELLS)return level;}return LEVELS[0];}
 function pointInRing(lat,lon,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];const hit=((yi>lat)!=(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi)+xi);if(hit)inside=!inside;}return inside;}
 function featureContains(lat,lon,f){const g=f.geometry;if(!g)return false;if(g.type==='Polygon'){if(!pointInRing(lat,lon,g.coordinates[0]))return false;for(let i=1;i<g.coordinates.length;i++)if(pointInRing(lat,lon,g.coordinates[i]))return false;return true;}if(g.type==='MultiPolygon')return g.coordinates.some(poly=>{if(!pointInRing(lat,lon,poly[0]))return false;for(let i=1;i<poly.length;i++)if(pointInRing(lat,lon,poly[i]))return false;return true;});return false;}
 function pointInIndia(lat,lon){for(const b of indiaBoundsBoxes)if(lat>=b.minLat&&lat<=b.maxLat&&lon>=b.minLon&&lon<=b.maxLon)for(const f of indiaGeometry)if(featureContains(lat,lon,f))return true;return false;}
-
 function addRing(ctx,ring,z,origin){if(!ring.length)return;let p=screenXY(...merc(ring[0][1],ring[0][0]),z,origin);ctx.moveTo(p[0],p[1]);for(let i=1;i<ring.length;i++){p=screenXY(...merc(ring[i][1],ring[i][0]),z,origin);ctx.lineTo(p[0],p[1]);}ctx.closePath();}
 function clipIndia(ctx,z,origin){ctx.beginPath();for(const f of indiaGeometry){const g=f.geometry;if(g.type==='Polygon')for(const ring of g.coordinates)addRing(ctx,ring,z,origin);else if(g.type==='MultiPolygon')for(const poly of g.coordinates)for(const ring of poly)addRing(ctx,ring,z,origin);}ctx.clip('evenodd');}
 
@@ -70,33 +71,22 @@ const GridCanvas=L.Layer.extend({
   onRemove(){this._canvas.remove();},
   resize(){const s=this._map.getSize(),d=window.devicePixelRatio||1;this._canvas.width=Math.max(1,Math.floor(s.x*d));this._canvas.height=Math.max(1,Math.floor(s.y*d));this._canvas.style.width=`${s.x}px`;this._canvas.style.height=`${s.y}px`;this._ctx.setTransform(d,0,0,d,0,0);},
   schedule(){clearTimeout(renderTimer);renderTimer=setTimeout(()=>{cancelAnimationFrame(renderHandle);renderHandle=requestAnimationFrame(()=>this.render());},35);},
-  render(){if(!indiaGeometry.length)return;this.resize();const ctx=this._ctx,s=this._map.getSize(),z=this._map.getZoom(),level=chooseRenderLevel(),b=this._map.getBounds(),origin=this._map.getPixelOrigin();ctx.clearRect(0,0,s.x,s.y);ctx.save();clipIndia(ctx,z,origin);
-    const sw=merc(b.getSouth(),b.getWest()),ne=merc(b.getNorth(),b.getEast());
-    const minX=Math.floor(sw[0]/level.side)-1,maxX=Math.ceil(ne[0]/level.side)+1,minY=Math.floor(sw[1]/level.side)-1,maxY=Math.ceil(ne[1]/level.side)+1;
-    const total=visibleCellsForLevel(level);
-    if(total>MAX_RENDER_CELLS){ctx.restore();return;}
-    ctx.strokeStyle='rgba(31,78,121,0.5)';ctx.lineWidth=1;ctx.beginPath();
-    if(level.depth<4){
-      for(let iy=minY;iy<=maxY;iy++)for(let ix=minX;ix<=maxX;ix++){
-        const x1=ix*level.side,y1=iy*level.side,x2=x1+level.side,y2=y1+level.side,p1=screenXY(x1,y1,z,origin),p2=screenXY(x2,y2,z,origin);const x=Math.min(p1[0],p2[0]),y=Math.min(p1[1],p2[1]),w=Math.abs(p2[0]-p1[0]),h=Math.abs(p2[1]-p1[1]);if(x+w<0||x>s.x||y+h<0||y>s.y)continue;ctx.rect(Math.round(x)+.5,Math.round(y)+.5,Math.max(1,w),Math.max(1,h));
-      }
-    }else{
-      const p0=Math.sqrt(0.1);for(let py=minY;py<=maxY;py++)for(let px=minX;px<=maxX;px++)for(const [ox,oy] of FINAL_PLACEMENTS){const x1=px+ox,y1=py+oy,x2=x1+p0,y2=y1+p0,p1=screenXY(x1,y1,z,origin),p2=screenXY(x2,y2,z,origin),x=Math.min(p1[0],p2[0]),y=Math.min(p1[1],p2[1]),w=Math.abs(p2[0]-p1[0]),h=Math.abs(p2[1]-p1[1]);if(x+w<0||x>s.x||y+h<0||y>s.y||w<0.9)continue;ctx.rect(Math.round(x)+.5,Math.round(y)+.5,Math.max(1,w),Math.max(1,h));}
-    }
+  render(){if(!indiaGeometry.length)return;this.resize();const ctx=this._ctx,s=this._map.getSize(),z=this._map.getZoom(),level=chooseRenderLevel(),origin=this._map.getPixelOrigin();ctx.clearRect(0,0,s.x,s.y);ctx.save();clipIndia(ctx,z,origin);const b=this._map.getBounds(),sw=merc(b.getSouth(),b.getWest()),ne=merc(b.getNorth(),b.getEast());ctx.strokeStyle='rgba(31,78,121,0.48)';ctx.lineWidth=1;ctx.beginPath();
+    if(level.depth<4){const minX=Math.floor(sw[0]/level.side)-1,maxX=Math.ceil(ne[0]/level.side)+1,minY=Math.floor(sw[1]/level.side)-1,maxY=Math.ceil(ne[1]/level.side)+1;for(let iy=minY;iy<=maxY;iy++)for(let ix=minX;ix<=maxX;ix++){const p1=screenXY(ix*level.side,iy*level.side,z,origin),p2=screenXY((ix+1)*level.side,(iy+1)*level.side,z,origin),x=Math.min(p1[0],p2[0]),y=Math.min(p1[1],p2[1]),w=Math.abs(p2[0]-p1[0]),h=Math.abs(p2[1]-p1[1]);if(x+w<0||x>s.x||y+h<0||y>s.y)continue;ctx.rect(Math.round(x)+.5,Math.round(y)+.5,Math.max(1,w),Math.max(1,h));}}
+    else {const minX=Math.floor(sw[0]/1)-1,maxX=Math.ceil(ne[0]/1)+1,minY=Math.floor(sw[1]/1)-1,maxY=Math.ceil(ne[1]/1)+1,terminal=Math.sqrt(0.1);for(let iy=minY;iy<=maxY;iy++)for(let ix=minX;ix<=maxX;ix++)for(const [ox,oy] of FINAL_PLACEMENTS){const p1=screenXY(ix+ox,iy+oy,z,origin),p2=screenXY(ix+ox+terminal,iy+oy+terminal,z,origin),x=Math.min(p1[0],p2[0]),y=Math.min(p1[1],p2[1]),w=Math.abs(p2[0]-p1[0]),h=Math.abs(p2[1]-p1[1]);if(x+w<0||x>s.x||y+h<0||y>s.y||w<MIN_CELL_PIXELS)continue;ctx.rect(Math.round(x)+.5,Math.round(y)+.5,Math.max(1,w),Math.max(1,h));}}
     ctx.stroke();ctx.restore();
   }
 });
 const gridCanvas=new GridCanvas();gridCanvas.addTo(map);
 
 const metaCache=new Map();
-let hoverRequest=0;
-async function showHover(evt,hit){hoveredCode=hit.code;tooltip.classList.remove('hidden');tooltip.style.left=`${Math.min(innerWidth-310,Math.max(10,evt.clientX+14))}px`;tooltip.style.top=`${Math.min(innerHeight-100,Math.max(10,evt.clientY+14))}px`;tooltip.innerHTML=`<b>${hit.code}</b><br>Area: ${(hit.level.side*hit.level.side).toPrecision(8)} m²<br>ULPIN: checking…`;const requestId=++hoverRequest;setTimeout(async()=>{if(requestId!==hoverRequest||hoveredCode!==hit.code)return;if(metaCache.has(hit.code)){const d=metaCache.get(hit.code);tooltip.innerHTML=`<b>${hit.code}</b><br>Area: ${d.area_m2??hit.level.side*hit.level.side} m²<br>ULPIN: ${d.ulpin??'Not linked'}`;return;}try{const r=await fetch(`${API_BASE}/api/v1/spatial/cell-info/${encodeURIComponent(hit.code)}`);const d=r.ok?await r.json():{ulpin:'Not linked'};metaCache.set(hit.code,d);if(hoveredCode===hit.code)tooltip.innerHTML=`<b>${hit.code}</b><br>Area: ${d.area_m2??hit.level.side*hit.level.side} m²<br>ULPIN: ${d.ulpin??'Not linked'}`;}catch(_){metaCache.set(hit.code,{ulpin:'Not linked'});}},120);}
-map.on('mousemove',e=>{const {lat,lng}=e.latlng;if(!pointInIndia(lat,lng)){hoveredCode=null;tooltip.classList.add('hidden');return;}const hit=pointCell(chooseRenderLevel(),...merc(lat,lng));if(hit)showHover(e.originalEvent,hit);});
+async function showHover(evt,hit){clearTimeout(hoverTimer);hoveredCode=hit.code;tooltip.classList.remove('hidden');tooltip.style.left=`${Math.min(innerWidth-310,Math.max(10,evt.clientX+14))}px`;tooltip.style.top=`${Math.min(innerHeight-100,Math.max(10,evt.clientY+14))}px`;tooltip.innerHTML=`<b>${hit.code}</b><br>Area: ${(hit.level.side*hit.level.side).toPrecision(8)} m²<br>ULPIN: checking…`;const token=++hoverRequest;hoverTimer=setTimeout(async()=>{if(token!==hoverRequest||hoveredCode!==hit.code)return;if(metaCache.has(hit.code)){const d=metaCache.get(hit.code);tooltip.innerHTML=`<b>${hit.code}</b><br>Area: ${d.area_m2??hit.level.side*hit.level.side} m²<br>ULPIN: ${d.ulpin??'Not linked'}`;return;}try{const r=await fetch(`${API_BASE}/api/v1/spatial/cell-info/${encodeURIComponent(hit.code)}`);const d=r.ok?await r.json():{ulpin:'Not linked'};metaCache.set(hit.code,d);if(hoveredCode===hit.code)tooltip.innerHTML=`<b>${hit.code}</b><br>Area: ${d.area_m2??hit.level.side*hit.level.side} m²<br>ULPIN: ${d.ulpin??'Not linked'}`;}catch(_){metaCache.set(hit.code,{ulpin:'Not linked'});}},150);}
+map.on('mousemove',e=>{const {lat,lng}=e.latlng;if(!pointInIndia(lat,lng)){hoveredCode=null;hoverRequest++;tooltip.classList.add('hidden');return;}const hit=pointCell(chooseRenderLevel(),...merc(lat,lng));if(hit)showHover(e.originalEvent,hit);});
 map.on('mouseout',()=>{hoveredCode=null;hoverRequest++;tooltip.classList.add('hidden');});
 function pointCell(level,mx,my){const ix=Math.floor((mx-ROOT_ORIGIN_X)/1000),iy=Math.floor((my-ROOT_ORIGIN_Y)/1000);if(ix<0||iy<0||ix>=ROOT_COLS)return null;let lx=mx-(ROOT_ORIGIN_X+ix*1000),ly=my-(ROOT_ORIGIN_Y+iy*1000),side=1000,path=[];for(let d=0;d<level.depth;d++){if(d<3){const child=side/10,dx=Math.floor(lx/child),dy=Math.floor(ly/child);if(dx<0||dx>9||dy<0||dy>9)return null;path.push(dy*10+dx);lx-=dx*child;ly-=dy*child;side=child;}else{const s=Math.sqrt(.1);let hit=-1;for(let i=0;i<FINAL_PLACEMENTS.length;i++){const [ox,oy]=FINAL_PLACEMENTS[i];if(lx>=ox&&lx<=ox+s&&ly>=oy&&ly<=oy+s){hit=i;break;}}if(hit<0)return null;path.push(hit);}}return {ix,iy,path,code:cellId(ix,iy,path),level};}
 
-function searchCell(target){const c=cellGeometry(target.ix,target.iy,target.path);const r=L.rectangle(boundsFromMercator(c.x1,c.y1,c.x2,c.y2),{weight:4,color:'#ef4444',fill:false,dashArray:'8 6',interactive:false}).addTo(highlightLayer);searchResult.classList.remove('hidden');searchResult.innerHTML=`<b>${target.code}</b><br>${target.level.display} · ${c.area.toPrecision(8)} m²`;map.flyToBounds(r.getBounds().pad(.55),{duration:1.4,easeLinearity:.2,maxZoom:31});}
-function parseALU(raw){const parts=raw.trim().toUpperCase().split('-').filter(Boolean);if(parts.length<1||parts.length>5)throw Error('ALU must contain one 6-character root plus up to four hierarchy segments.');if(!/^[A-Z]\d[0-9A-Z]{4}$/.test(parts[0]))throw Error('Root ALU must contain 6 alpha-numeric characters, including a letter and a number.');const root=rootFromCode(parts[0]),path=[];for(let i=1;i<parts.length;i++){const k=CHILD_TOKEN_INDEX.get(parts[i]);if(k===undefined)throw Error(`Invalid hierarchy segment: ${parts[i]}`);path.push(k);}const level=LEVELS[path.length];if(!level)throw Error('ALU hierarchy is too deep.');return {code:parts.join('-'),ix:root.ix,iy:root.iy,path,level};}
+function searchCell(target){highlightLayer.clearLayers();const c=cellGeometry(target.ix,target.iy,target.path),r=L.rectangle(boundsFromMercator(c.x1,c.y1,c.x2,c.y2),{weight:4,color:'#ef4444',fill:false,dashArray:'8 6',interactive:false}).addTo(highlightLayer);searchResult.classList.remove('hidden');searchResult.innerHTML=`<b>${target.code}</b><br>${target.level.display} · ${c.area.toPrecision(8)} m²`;map.flyToBounds(r.getBounds().pad(.55),{duration:1.25,easeLinearity:.2,maxZoom:31});}
+function parseALU(raw){const parts=raw.trim().toUpperCase().split('-').filter(Boolean);if(parts.length<1||parts.length>5)throw Error('ALU must contain one 6-character root plus up to four 2-character hierarchy segments.');if(!/^[A-Z]\d[0-9A-Z]{4}$/.test(parts[0]))throw Error('Root ALU must contain 6 alpha-numeric characters, including a letter and a number.');const root=rootFromCode(parts[0]),path=[];for(let i=1;i<parts.length;i++){const k=CHILD_TOKEN_INDEX.get(parts[i]);if(k===undefined)throw Error(`Invalid hierarchy segment: ${parts[i]}`);path.push(k);}return {code:parts.join('-'),ix:root.ix,iy:root.iy,path,level:LEVELS[path.length]};}
 document.getElementById('aluSearchForm')?.addEventListener('submit',e=>{e.preventDefault();try{searchHint.textContent='';highlightLayer.clearLayers();searchCell(parseALU(searchInput.value));}catch(err){searchHint.textContent=err.message;searchInput.focus();}});
 
 async function loadBoundaries(){try{const r=await fetch(`${API_BASE}/api/v1/spatial/india-boundaries`);if(!r.ok)throw Error();const data=await r.json();indiaGeometry=data.features||[];indiaBoundsBoxes=[];for(const f of indiaGeometry){let minLat=90,maxLat=-90,minLon=180,maxLon=-180;const scan=g=>{if(g.type==='Polygon')for(const ring of g.coordinates)for(const [lon,lat] of ring){minLat=Math.min(minLat,lat);maxLat=Math.max(maxLat,lat);minLon=Math.min(minLon,lon);maxLon=Math.max(maxLon,lon);}else if(g.type==='MultiPolygon')for(const poly of g.coordinates)for(const ring of poly)for(const [lon,lat] of ring){minLat=Math.min(minLat,lat);maxLat=Math.max(maxLat,lat);minLon=Math.min(minLon,lon);maxLon=Math.max(maxLon,lon);}};scan(f.geometry);indiaBoundsBoxes.push({minLat,maxLat,minLon,maxLon});}boundaryLayer.addData(data);gridCanvas.schedule();}catch(_){searchHint.textContent='India boundary unavailable — start PostGIS + FastAPI.';}}
