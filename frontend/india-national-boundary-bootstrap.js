@@ -27,7 +27,7 @@
 
   function loadMap() {
     const script = document.createElement('script');
-    script.src = 'map.js?v=20260907i';
+    script.src = 'map.js?v=20260907h';
     script.defer = false;
     document.body.appendChild(script);
   }
