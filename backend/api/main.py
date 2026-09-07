@@ -5,7 +5,6 @@ from functools import lru_cache
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from ..mock_gov_portal.fixtures.loader import list_all_parcels, load_parcel
 from ..retrieval_engine.engine import assignment_summary
 from ..retrieval_engine.engine_v2 import retrieve_parcel
@@ -15,7 +14,7 @@ from ..spatial_indexing.lattice import Cell, cell_from_id, children, ancestor_1k
 
 MOCK_PORTAL_URL=os.environ.get("MOCK_PORTAL_URL","http://localhost:8001")
 POSTGIS_DSN=os.environ.get("POSTGIS_DSN","dbname=sih26012 user=sih password=sih host=localhost port=5432")
-app=FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API",version="3.0.0",description="Assignment engine plus PostGIS-backed India WebGIS.")
+app=FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API",version="3.1.0",description="Assignment engine plus PostGIS-backed India WebGIS.")
 app.add_middleware(CORSMiddleware,allow_origins=["http://localhost:3000","http://localhost:5173"],allow_credentials=True,allow_methods=["GET","POST"],allow_headers=["*"])
 
 @lru_cache(maxsize=32)
@@ -79,20 +78,32 @@ def spatial_levels(): return {"levels":list(ROUND_LEVELS)}
 def india_boundaries():
     try:
         with db() as conn, conn.cursor() as cur:
-            cur.execute("""SELECT id,name,code,ST_AsGeoJSON(geom)::json AS geometry,properties
-                          FROM admin_boundaries WHERE level='state' ORDER BY name""")
+            cur.execute("""SELECT id,name,code,ST_AsGeoJSON(geom)::json AS geometry,properties FROM admin_boundaries WHERE level='state' ORDER BY name""")
             rows=cur.fetchall()
     except Exception as exc:
         raise HTTPException(503,f"PostGIS unavailable: {exc}")
     return {"type":"FeatureCollection","features":[{"type":"Feature","id":r[0],"properties":{"name":r[1],"code":r[2],**(r[4] or {})},"geometry":r[3]} for r in rows]}
 
+# Visual hierarchy: country-scale display cells lead into the canonical ALU levels.
+GRID_LEVELS=[
+    (4,"500 km",500000.0,500000.0),
+    (6,"250 km",250000.0,250000.0),
+    (8,"100 km",100000.0,100000.0),
+    (9,"50 km",50000.0,50000.0),
+    (10,"10 km",10000.0,10000.0),
+    (12,"1 km",1000.0,1000.0),
+    (15,"100 m",100.0,100.0),
+    (18,"10 m",10.0,10.0),
+    (22,"1 m",1.0,1.0),
+    (27,"0.1 m²",0.1,1.0),
+]
+
 @app.get("/api/v1/spatial/grid",tags=["Spatial"])
-def spatial_grid(west:float=Query(...),south:float=Query(...),east:float=Query(...),north:float=Query(...),zoom:int=Query(...,ge=4,le=24)):
-    levels=[(10,"1km",1000.0,1000.0),(14,"100m",100.0,100.0),(17,"10m",10.0,10.0),(20,"1m",1.0,1.0),(24,"0.1m2",0.1,1.0)]
-    level, name, sx, sy = levels[0]
-    for item in levels:
-        if zoom>=item[0]: level,name,sx,sy=item
+def spatial_grid(west:float=Query(...),south:float=Query(...),east:float=Query(...),north:float=Query(...),zoom:int=Query(...,ge=4,le=31)):
     if west>=east or south>=north: raise HTTPException(400,"Invalid bounding box")
+    level,name,sx,sy=GRID_LEVELS[0]
+    for item in GRID_LEVELS:
+        if zoom>=item[0]: level,name,sx,sy=item
     sql="""
     WITH b AS (SELECT ST_Transform(ST_MakeEnvelope(%s,%s,%s,%s,4326),3857) g),
     p AS (SELECT ST_XMin(g) xmin,ST_XMax(g) xmax,ST_YMin(g) ymin,ST_YMax(g) ymax FROM b),
@@ -109,8 +120,9 @@ def spatial_grid(west:float=Query(...),south:float=Query(...),east:float=Query(.
         with db() as conn, conn.cursor() as cur:
             cur.execute(sql,(west,south,east,north,sx,sx,sy,sy,sx,sy,sx,sy))
             rows=cur.fetchall()
-    except Exception as exc: raise HTTPException(503,f"PostGIS unavailable: {exc}")
-    return {"level":name,"width_m":sx,"height_m":sy,"area_m2":sx*sy,"zoom":zoom,"count":len(rows),"features":[{"type":"Feature","properties":{"ix":r[0],"iy":r[1],"level":name,"width_m":sx,"height_m":sy,"area_m2":sx*sy},"geometry":r[2]} for r in rows]}
+    except Exception as exc:
+        raise HTTPException(503,f"PostGIS unavailable: {exc}")
+    return {"level":name,"width_m":sx,"height_m":sy,"area_m2":sx*sy,"zoom":zoom,"count":len(rows),"truncated":len(rows)>=1500,"features":[{"type":"Feature","properties":{"ix":r[0],"iy":r[1],"level":name,"width_m":sx,"height_m":sy,"area_m2":sx*sy},"geometry":r[2]} for r in rows]}
 
 @app.post("/api/v1/rounds/demo",tags=["Rounds"])
 def process_demo_rounds():
