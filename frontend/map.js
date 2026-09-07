@@ -50,19 +50,18 @@ function useBoundary(geo){if(!geo?.features?.length)return false;indiaGeometry=g
 function loadCachedBoundary(){try{const geo=JSON.parse(localStorage.getItem(INDIA_CACHE)||'null');return useBoundary(geo)}catch(_){return false}}
 function resizeCanvas(){const s=map.getSize(),d=Math.min(devicePixelRatio||1,2);if(s.x!==lastCanvasW||s.y!==lastCanvasH||d!==lastDpr){canvas.width=Math.max(1,Math.floor(s.x*d));canvas.height=Math.max(1,Math.floor(s.y*d));canvas.style.width=s.x+'px';canvas.style.height=s.y+'px';lastCanvasW=s.x;lastCanvasH=s.y;lastDpr=d}return d}
 const ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});
+function pathRing(ring,z,o){if(!ring.length)return;let p=screen(...merc(ring[0][1],ring[0][0]),z,o);ctx.moveTo(p[0],p[1]);for(let i=1;i<ring.length;i++){p=screen(...merc(ring[i][1],ring[i][0]),z,o);ctx.lineTo(p[0],p[1])}ctx.closePath()}
+function clipIndia(z,o){ctx.beginPath();for(const f of indiaGeometry){const g=f.geometry;if(g?.type==='Polygon')for(const ring of g.coordinates)pathRing(ring,z,o);else if(g?.type==='MultiPolygon')for(const poly of g.coordinates)for(const ring of poly)pathRing(ring,z,o)}ctx.clip('evenodd')}
 function paint(){
   const size=map.getSize(),d=resizeCanvas(),z=map.getZoom(),o=map.getPixelOrigin(),v=visibleMerc(),level=activeLevel(),unit=level.side;
-  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,Math.max(1,Math.floor(size.x*d)),Math.max(1,Math.floor(size.y*d)));
+  ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,size.x,size.y);
   if(!indiaGeometry.length)return;
   const stride=1;
   const minX=Math.floor((v.minX-unit*2)/unit),maxX=Math.ceil((v.maxX+unit*2)/unit),minY=Math.floor((v.minY-unit*2)/unit),maxY=Math.ceil((v.maxY+unit*2)/unit);
-  const boundaryZoom=Math.round(z*2)/2;
-  const scale=worldPx(z)/worldPx(boundaryZoom),bp=buildBoundaryPath(boundaryZoom);
-  ctx.setTransform(d*scale,0,0,d*scale,-o.x*d,-o.y*d);
-  ctx.save();ctx.clip(bp,'evenodd');
-  ctx.strokeStyle='#000';ctx.lineWidth=Math.max(1,1/Math.max(scale,1));ctx.beginPath();
-  for(let gx=minX;gx<=maxX;gx+=stride){const x=gx*unit,w=worldPx(z),sx=(x/WORLD+.5)*w;ctx.moveTo(sx/(scale),0);ctx.lineTo(sx/(scale),size.y/(scale))}
-  for(let gy=minY;gy<=maxY;gy+=stride){const y=gy*unit,w=worldPx(z),sy=(.5-y/WORLD)*w;ctx.moveTo(0,sy/(scale));ctx.lineTo(size.x/(scale),sy/(scale))}
+  ctx.save();clipIndia(z,o);
+  ctx.strokeStyle='#000';ctx.lineWidth=1;ctx.beginPath();
+  for(let gx=minX;gx<=maxX;gx+=stride){const x=gx*unit,a=screen(x,v.minY-unit,z,o),sx=Math.round(a[0])+.5;ctx.moveTo(sx,0);ctx.lineTo(sx,size.y)}
+  for(let gy=minY;gy<=maxY;gy+=stride){const y=gy*unit,a=screen(v.minX-unit,y,z,o),sy=Math.round(a[1])+.5;ctx.moveTo(0,sy);ctx.lineTo(size.x,sy)}
   ctx.stroke();ctx.restore();
 }
 function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;paint()})}
