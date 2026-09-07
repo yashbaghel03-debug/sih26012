@@ -14,7 +14,7 @@ from ..spatial_indexing.lattice import LEVEL_ORDER, LEVEL_SPECS, Cell, ancestor_
 
 MOCK_PORTAL_URL = os.environ.get("MOCK_PORTAL_URL", "http://localhost:8001")
 POSTGIS_DSN = os.environ.get("POSTGIS_DSN", "dbname=sih26012 user=sih password=sih host=localhost port=5432")
-app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="5.0.0", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS.")
+app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.0.0", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS.")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:5173"], allow_credentials=True, allow_methods=["GET", "POST"], allow_headers=["*"])
 
 @lru_cache(maxsize=64)
@@ -90,7 +90,7 @@ def spatial_cell(cell_id):
         "width_m": cell.width_m,
         "height_m": cell.height_m,
         "area_m2": cell.area_m2,
-        "ancestor_1km": ancestor_1km(cell).id,
+        "ancestor_1km": (ancestor_1km(cell).id if cell.level != "100km2" else None),
         "children": [child.id for child in children(cell)],
     }
 
@@ -169,6 +169,6 @@ def india_boundaries():
 def process_demo_rounds():
     pids = [p["parcel_id"] for p in list_all_parcels()]
     processor = RoundProcessor(base_url=MOCK_PORTAL_URL)
-    roots = [Cell("1km2", 0, idx, ()) for idx in range(len(pids))]
-    targets = {"1km2": [RoundCell(cell, pids[idx]) for idx, cell in enumerate(roots)]}
+    roots = [Cell("100km2", 0, idx, ()) for idx in range(len(pids))]
+    targets = {"100km2": [RoundCell(cell, pids[idx]) for idx, cell in enumerate(roots)]}
     return {"rounds": [result.to_dict() for result in processor.process_all_levels(targets)]}
