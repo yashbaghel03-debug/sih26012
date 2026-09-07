@@ -1,17 +1,17 @@
-"""Hierarchical ALU spatial indexing.
+"""Deterministic hierarchical ALU spatial indexing for India WebGIS.
 
-Rules implemented:
-- Round areas: 1 km² -> 0.01 km² -> 0.0001 km² -> 0.000001 km² -> 0.1 m².
-- The first four transitions divide area by 100 (10 x 10 children).
-- The final transition divides 1 m² into ten equal-area square logical units;
-  side = sqrt(0.1) metres. Ten congruent squares cannot tile a 1 m² square
-  without overlap/gaps, so these final units are defined as deterministic
-  equal-area sample footprints inside the parent rather than a gapless tiling.
-- Root ALU is a 6-character opaque-looking base36 code containing at least
-  one alphabetic and one numeric character.
-- Each refinement appends exactly one 2-character base36 token after '-'.
-  Every token itself contains at least one alphabetic and one numeric char.
-- Codes never expose the spatial level name. Hyphens are the hierarchy.
+Hierarchy:
+    1 km² -> 0.01 km² -> 0.0001 km² -> 1 m² -> 0.1 m².
+
+The first three refinements are true 10x10 square subdivisions. The final
+0.1 m² terminal is represented by ten deterministic equal-area square
+footprints because ten congruent irrational-sided squares cannot form a
+regular gapless 1 m² square tiling. The terminal footprints are therefore
+logical terminal sampling cells, not a claim of a Euclidean tiling.
+
+ALU IDs are opaque hierarchical strings. The root is 6 characters and every
+refinement adds a 2-character base36 token. Each token contains at least one
+letter and one digit.
 """
 from __future__ import annotations
 
@@ -23,24 +23,15 @@ BASE36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 DIGITS = "0123456789"
 
-# Each tuple is (public level name, side metres, child count, child layout).
+LEVEL_ORDER = ("1km2", "0.01km2", "0.0001km2", "0.000001km2", "0.1m2")
 LEVEL_SPECS = {
-    "1km2": (1000.0, 100, "10x10"),
-    "0.01km2": (100.0, 100, "10x10"),
-    "0.0001km2": (10.0, 100, "10x10"),
-    "0.000001km2": (1.0, 10, "final10"),
-    "0.1m2": (sqrt(0.1), 0, "final10"),
-}
-LEVEL_ORDER = tuple(LEVEL_SPECS)
-_PARENT_LEVEL = {
-    "0.01km2": "1km2",
-    "0.0001km2": "0.01km2",
-    "0.000001km2": "0.0001km2",
-    "0.1m2": "0.000001km2",
+    "1km2": {"side_m": 1000.0, "children": 100, "kind": "square10x10"},
+    "0.01km2": {"side_m": 100.0, "children": 100, "kind": "square10x10"},
+    "0.0001km2": {"side_m": 10.0, "children": 100, "kind": "square10x10"},
+    "0.000001km2": {"side_m": 1.0, "children": 10, "kind": "terminal10"},
+    "0.1m2": {"side_m": sqrt(0.1), "children": 0, "kind": "terminal"},
 }
 
-# India-wide working extent in EPSG:3857. This is only for deterministic root
-# indexing; the actual India polygon still comes from PostGIS.
 ROOT_ORIGIN_X = 7_570_000.0
 ROOT_ORIGIN_Y = 700_000.0
 ROOT_COLS = 4_000
@@ -49,11 +40,13 @@ ROOT_COLS = 4_000
 def _b36(n: int, width: int) -> str:
     if n < 0:
         raise ValueError("base36 input must be non-negative")
-    chars = []
+    if n == 0:
+        return "0" * width
+    out = []
     while n:
         n, r = divmod(n, 36)
-        chars.append(BASE36[r])
-    return ("0" * (width - len(chars)) + "".join(reversed(chars))) if chars else "0" * width
+        out.append(BASE36[r])
+    return ("0" * max(0, width - len(out)) + "".join(reversed(out)))
 
 
 def _from_b36(value: str) -> int:
@@ -61,15 +54,12 @@ def _from_b36(value: str) -> int:
         raise ValueError("empty base36 value")
     n = 0
     for ch in value.upper():
-        try:
-            digit = BASE36.index(ch)
-        except ValueError as exc:
-            raise ValueError(f"invalid base36 character: {ch}") from exc
-        n = n * 36 + digit
+        if ch not in BASE36:
+            raise ValueError(f"invalid base36 character: {ch}")
+        n = n * 36 + BASE36.index(ch)
     return n
 
-# 1296 possible 2-char tokens; select the first 100 mixed tokens in base36
-# order. Every token contains both a letter and a digit.
+
 CHILD_TOKENS = tuple(
     f"{a}{b}"
     for a in BASE36
@@ -78,49 +68,53 @@ CHILD_TOKENS = tuple(
 )[:100]
 TOKEN_TO_INDEX = {token: i for i, token in enumerate(CHILD_TOKENS)}
 
+# Ten deterministic terminal footprints inside the 1 m² parent.
+TERMINAL_PLACEMENTS = (
+    (0.000, 0.000), (0.340, 0.000), (0.680, 0.000),
+    (0.000, 0.340), (0.340, 0.340), (0.680, 0.340),
+    (0.000, 0.680), (0.340, 0.680), (0.680, 0.680),
+    (0.340, 0.340),
+)
+
 
 def _validate_level(level: str) -> None:
     if level not in LEVEL_SPECS:
-        raise ValueError(f"Unknown ALU level: {level}")
+        raise ValueError(f"unknown ALU level: {level}")
 
 
 def root_indices_to_code(ix: int, iy: int) -> str:
-    """Encode a root 1 km index to a 6-character mixed base36 code."""
-    if ix < 0 or iy < 0 or ix >= ROOT_COLS:
-        raise ValueError("root index outside configured India index extent")
+    if ix < 0 or ix >= ROOT_COLS or iy < 0:
+        raise ValueError("root index outside configured India extent")
     flat = iy * ROOT_COLS + ix
-    # 5 base36 chars carry the flattened root index. The first two chars are
-    # constrained to letter + digit so the six-character code always satisfies
-    # the mixed alpha-numeric rule, while the remaining four chars use all 36.
-    prefix_bucket, remainder = divmod(flat, 36**4)
-    if prefix_bucket >= 260:
-        raise ValueError("root index exceeds ALU root code capacity")
-    p_letter, p_digit = divmod(prefix_bucket, 10)
-    return f"{ALPHABET[p_letter]}{DIGITS[p_digit]}{_b36(remainder, 4)}"
+    bucket, remainder = divmod(flat, 36**4)
+    if bucket >= 260:
+        raise ValueError("root index exceeds six-character ALU capacity")
+    letter_index, digit_index = divmod(bucket, 10)
+    return f"{ALPHABET[letter_index]}{DIGITS[digit_index]}{_b36(remainder, 4)}"
 
 
 def code_to_root_indices(code: str) -> tuple[int, int]:
     code = code.upper()
     if len(code) != 6 or not code[0].isalpha() or not code[1].isdigit():
-        raise ValueError("root ALU code must be six characters with letter+number")
+        raise ValueError("root ALU code must be six characters with a letter and number")
     if any(ch not in BASE36 for ch in code):
         raise ValueError("root ALU code must be base36")
-    prefix_bucket = ALPHABET.index(code[0]) * 10 + DIGITS.index(code[1])
-    flat = prefix_bucket * 36**4 + _from_b36(code[2:])
+    bucket = ALPHABET.index(code[0]) * 10 + DIGITS.index(code[1])
+    flat = bucket * 36**4 + _from_b36(code[2:])
     return flat % ROOT_COLS, flat // ROOT_COLS
 
 
 def child_token(index: int) -> str:
-    if index < 0 or index >= len(CHILD_TOKENS):
+    if index < 0 or index >= 100:
         raise ValueError("child index out of range")
     return CHILD_TOKENS[index]
 
 
 def child_index(token: str) -> int:
-    try:
-        return TOKEN_TO_INDEX[token.upper()]
-    except KeyError as exc:
-        raise ValueError(f"invalid ALU hierarchy token: {token}") from exc
+    token = token.upper()
+    if token not in TOKEN_TO_INDEX:
+        raise ValueError(f"invalid ALU hierarchy token: {token}")
+    return TOKEN_TO_INDEX[token]
 
 
 @dataclass(frozen=True)
@@ -135,20 +129,18 @@ class Cell:
         expected_depth = LEVEL_ORDER.index(self.level)
         if len(self.path) != expected_depth:
             raise ValueError(f"{self.level} requires hierarchy depth {expected_depth}")
-        for item in self.path:
-            if item < 0 or item >= 100:
-                raise ValueError("hierarchy index out of range")
+        if any(i < 0 or i >= 100 for i in self.path):
+            raise ValueError("hierarchy index out of range")
         if self.level == "0.1m2" and self.path[-1] >= 10:
-            raise ValueError("final level has only ten child units")
+            raise ValueError("final level has exactly ten terminal children")
 
     @property
     def id(self) -> str:
-        root = root_indices_to_code(self.root_ix, self.root_iy)
-        return "-".join((root, *(child_token(i) for i in self.path)))
+        return "-".join((root_indices_to_code(self.root_ix, self.root_iy), *(child_token(i) for i in self.path)))
 
     @property
     def width_m(self) -> float:
-        return LEVEL_SPECS[self.level][0]
+        return LEVEL_SPECS[self.level]["side_m"]
 
     @property
     def height_m(self) -> float:
@@ -156,7 +148,7 @@ class Cell:
 
     @property
     def area_m2(self) -> float:
-        return self.width_m * self.height_m
+        return self.width_m * self.width_m
 
     @property
     def root_flat_index(self) -> int:
@@ -164,17 +156,15 @@ class Cell:
 
     @property
     def local_1km_offset(self) -> tuple[float, float]:
+        if self.level == "1km2":
+            return 0.0, 0.0
         ox = oy = 0.0
         side = 1000.0
-        for depth, index in enumerate(self.path):
-            if depth == 3:  # final ten equal-area squares: logical sample footprints
-                break
-            size = side / 10.0
-            dx = index % 10
-            dy = index // 10
-            ox += dx * size
-            oy += dy * size
-            side = size
+        for depth, index in enumerate(self.path[:3]):
+            child_side = side / 10.0
+            ox += (index % 10) * child_side
+            oy += (index // 10) * child_side
+            side = child_side
         return ox, oy
 
     @property
@@ -185,52 +175,43 @@ class Cell:
             ox, oy = self.local_1km_offset
             side = self.width_m
             return root_x + ox, root_y + oy, root_x + ox + side, root_y + oy + side
-
-        parent_path = self.path[:-1]
-        parent = Cell("0.000001km2", self.root_ix, self.root_iy, parent_path)
-        px1, py1, px2, py2 = parent.mercator_bounds
+        parent = Cell("0.000001km2", self.root_ix, self.root_iy, self.path[:-1])
+        px1, py1, _, _ = parent.mercator_bounds
+        ox, oy = TERMINAL_PLACEMENTS[self.path[-1]]
         side = sqrt(0.1)
-        # Deterministic 10-sample arrangement. The final units are equal-area
-        # squares used as the terminal refinement footprints.
-        placements = (
-            (0.0, 0.0), (0.3, 0.0), (0.6, 0.0),
-            (0.0, 0.3), (0.3, 0.3), (0.6, 0.3),
-            (0.0, 0.6), (0.3, 0.6), (0.6, 0.6),
-            (0.35, 0.35),
-        )
-        px, py = placements[self.path[-1]]
-        return px1 + px, py1 + py, px1 + px + side, py1 + py + side
+        return px1 + ox, py1 + oy, px1 + ox + side, py1 + oy + side
 
 
 def cell_from_id(value: str) -> Cell:
     parts = value.strip().upper().split("-")
     if not parts or len(parts[0]) != 6:
-        raise ValueError("Invalid hierarchical ALU code")
+        raise ValueError("invalid hierarchical ALU code")
     root_ix, root_iy = code_to_root_indices(parts[0])
     depth = len(parts) - 1
     if depth < 0 or depth >= len(LEVEL_ORDER):
-        raise ValueError("Invalid ALU hierarchy depth")
-    level = LEVEL_ORDER[depth]
+        raise ValueError("invalid ALU hierarchy depth")
     path = tuple(child_index(token) for token in parts[1:])
+    level = LEVEL_ORDER[depth]
     if level == "0.1m2" and (not path or path[-1] >= 10):
-        raise ValueError("Invalid final ALU child")
+        raise ValueError("invalid final ALU child")
     return Cell(level, root_ix, root_iy, path)
 
 
 def children(cell: Cell) -> Iterator[Cell]:
-    next_index = LEVEL_ORDER.index(cell.level) + 1
-    if next_index >= len(LEVEL_ORDER):
+    index = LEVEL_ORDER.index(cell.level)
+    if index == len(LEVEL_ORDER) - 1:
         return
-    next_level = LEVEL_ORDER[next_index]
-    count = LEVEL_SPECS[cell.level][1] // (LEVEL_SPECS[next_level][0] ** 2) if next_level != "0.1m2" else 10
-    for i in range(int(count)):
-        yield Cell(next_level, cell.root_ix, cell.root_iy, cell.path + (i,))
+    next_level = LEVEL_ORDER[index + 1]
+    count = LEVEL_SPECS[cell.level]["children"]
+    for child in range(count):
+        yield Cell(next_level, cell.root_ix, cell.root_iy, cell.path + (child,))
 
 
 def parent(cell: Cell) -> Cell | None:
-    if not cell.path:
+    index = LEVEL_ORDER.index(cell.level)
+    if index == 0:
         return None
-    return Cell(LEVEL_ORDER[LEVEL_ORDER.index(cell.level) - 1], cell.root_ix, cell.root_iy, cell.path[:-1])
+    return Cell(LEVEL_ORDER[index - 1], cell.root_ix, cell.root_iy, cell.path[:-1])
 
 
 def ancestor_1km(cell: Cell) -> Cell:
