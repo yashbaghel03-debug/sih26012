@@ -14,7 +14,7 @@ from ..spatial_indexing.lattice import LEVEL_ORDER, LEVEL_SPECS, Cell, ancestor_
 
 MOCK_PORTAL_URL = os.environ.get("MOCK_PORTAL_URL", "http://localhost:8001")
 POSTGIS_DSN = os.environ.get("POSTGIS_DSN", "dbname=sih26012 user=sih password=sih host=localhost port=5432")
-app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.1.0", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS.")
+app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.1.1", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS.")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:5173"], allow_credentials=True, allow_methods=["GET", "POST"], allow_headers=["*"])
 
 @lru_cache(maxsize=64)
@@ -192,18 +192,40 @@ def spatial_levels():
 
 @app.get("/api/v1/spatial/india-boundaries", tags=["Spatial"])
 def india_boundaries():
+    """Return one dissolved national outline for clipping the ALU grid.
+
+    The source features remain the Government of India's BharatMapService
+    administrative boundaries. Dissolving them removes state/district seams
+    so the renderer clips only to the national outer boundary.
+    """
     try:
         with db() as conn, conn.cursor() as cur:
-            cur.execute("SELECT id,name,code,ST_AsGeoJSON(geom)::json AS geometry,properties FROM admin_boundaries WHERE level='state' ORDER BY name")
-            rows = cur.fetchall()
+            cur.execute(
+                """SELECT ST_AsGeoJSON(
+                           ST_Multi(
+                               ST_CollectionExtract(
+                                   ST_UnaryUnion(ST_Collect(geom)), 3
+                               )
+                           )
+                       )::json AS geometry
+                   FROM admin_boundaries
+                   WHERE level = 'state'"""
+            )
+            row = cur.fetchone()
     except Exception as exc:
         raise HTTPException(503, f"PostGIS unavailable: {exc}")
+
+    if not row or not row[0]:
+        raise HTTPException(404, "India national boundary is not loaded in PostGIS")
+
     return {
         "type": "FeatureCollection",
-        "features": [
-            {"type": "Feature", "id": row[0], "properties": {"name": row[1], "code": row[2], **(row[4] or {})}, "geometry": row[3]}
-            for row in rows
-        ],
+        "features": [{
+            "type": "Feature",
+            "id": "india-national-boundary",
+            "properties": {"name": "India", "source": "gov.in:BharatMapService", "resolution_target": "1 km-scale display clipping"},
+            "geometry": row[0],
+        }],
     }
 
 @app.post("/api/v1/rounds/demo", tags=["Rounds"])
