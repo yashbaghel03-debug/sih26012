@@ -7,6 +7,7 @@ No parcel polygon is fabricated.
 """
 from __future__ import annotations
 from datetime import datetime, timezone
+from hashlib import sha256
 from math import floor
 from typing import Any
 from psycopg2.extras import RealDictCursor, execute_values
@@ -55,6 +56,7 @@ def status_for_index(row: int, col: int) -> str:
 def terminal_status(parent_status: str, terminal_index: int) -> str:
     if terminal_index == 9 and parent_status == "AVAILABLE": return "PARTIAL"
     if terminal_index == 7 and parent_status == "PARTIAL": return "N/D"
+    if terminal_index == 5 and parent_status == "N/D": return "N/A"
     return parent_status
 
 
@@ -168,3 +170,80 @@ def list_cells(conn, level: str = "1m2", limit: int = 10_000, offset: int = 0) -
 def cell_from_id(value: str) -> Cell:
     from ..spatial_indexing.lattice import cell_from_id as parse_cell
     return parse_cell(value)
+
+
+def _stable_int(alu_id: str, slot: int = 0) -> int:
+    digest = sha256(f"{alu_id}|{slot}".encode("utf-8")).hexdigest()
+    return int(digest[:12], 16)
+
+
+def _field(status: str, label: str, value: str, source: str = "Demo reconciliation layer") -> dict[str, str]:
+    return {"label": label, "value": value, "status": status, "source": source}
+
+
+def cell_details(alu_id: str) -> dict[str, Any]:
+    """Return a complete deterministic 21-field demo record for any catalog ALU.
+
+    Values are fictional, imperfect, and stable: the same ALU always receives
+    the same values/statuses until the generator rules are intentionally changed.
+    """
+    cell = cell_from_id(alu_id)
+    if cell.level not in {"1m2", "0.1m2"}:
+        raise ValueError("ALU details are available for the Pune 1m2 and 0.1m2 catalog levels")
+
+    h = lambda slot=0: _stable_int(cell.id, slot)
+    overall = ["AVAILABLE", "PARTIAL", "N/D", "AVAILABLE", "PARTIAL"][h(99) % 5]
+    if overall == "N/D" and h(100) % 7 == 0:
+        overall = "N/A"
+    locality = ["Kothrud", "Kothrud-South", "Paud Road", "Karve Road edge"][h(1) % 4]
+    holder = ["Aarav Kulkarni", "Ishita Deshmukh", "Rohan Patil", "Mira Joshi", "Kabir Pawar", "Nandini Bhosale"][h(2) % 6]
+    lat = 18.4945 + (h(3) % 2600) / 100000.0
+    lon = 73.7935 + (h(4) % 3000) / 100000.0
+    area = 1.0 if cell.level == "1m2" else 0.1
+    field_statuses = [overall] * 21
+    for i in (4, 8, 11, 15, 18):
+        if h(i + 200) % 4 == 0:
+            field_statuses[i] = "N/D"
+    for i in (2, 7, 13, 16):
+        if h(i + 300) % 5 == 0:
+            field_statuses[i] = "N/A"
+
+    fields = [
+        _field(field_statuses[0], "1. Ownership (RoR)", f"{holder} — DEMO HOLDER\nS/o Demo Holder"),
+        _field(field_statuses[1], "2. Land Use", ["Residential (Urban)", "Mixed Use", "Commercial", "Institutional"][h(5) % 4]),
+        _field(field_statuses[2], "3. Land Type", ["Private (Freehold)", "Leasehold", "Municipal", "N/A — service/utility strip"][h(6) % 4]),
+        _field(field_statuses[3], "4. Area", f"{area:g} m² (ALU cell)"),
+        _field(field_statuses[4], "5. Cadastral Map", ["Demo Sheet KTH-01 / Plot reference", "N/D — cadastral map record not publicly verified", "N/A — no cadastral geometry linked"][h(7) % 3]),
+        _field(field_statuses[5], "6. Registration Details", f"DEMO-REG-{100000 + h(8) % 899999}"),
+        _field(field_statuses[6], "7. Deed Type", ["Sale Deed", "Gift Deed", "Leave & License", "N/D"][h(9) % 4]),
+        _field(field_statuses[7], "8. Registration Date", ["18 Jan 2025", "03 Aug 2024", "27 Nov 2023", "N/A — no matching demo deed"][h(10) % 4]),
+        _field(field_statuses[8], "9. Encumbrance", ["None recorded", "Mortgage — DEMO BANK", "N/D — charge search unavailable"][h(11) % 3]),
+        _field(field_statuses[9], "10. Litigation", ["None recorded", "N/D — court linkage unavailable", "Case reference DEMO-CIV-2025-" + str(100 + h(12) % 800), "N/A"][h(13) % 4]),
+        _field(field_statuses[10], "11. Building Permission", f"BP/DEMO/PMC/{2023 + h(14) % 4}/{1000 + h(15) % 8999}"),
+        _field(field_statuses[11], "12. Occupancy Certificate", ["OC/DEMO/PMC/2025/" + str(100 + h(16) % 899), "N/D — certificate not retrieved", "N/A — vacant/demo use"][h(17) % 3]),
+        _field(field_statuses[12], "13. Property Tax", ["Paid (2025-26)", "Part Paid", "N/D — assessment unavailable"][h(18) % 3]),
+        _field(field_statuses[13], "14. Tax ID / PID", f"DEMO-PID-{1000000 + h(19) % 8999999}"),
+        _field(field_statuses[14], "15. Zoning / Land Use Zone", ["Residential R2", "Mixed Use MU", "Commercial C2", "Public / Semi-Public"][h(20) % 4]),
+        _field(field_statuses[15], "16. Infrastructure", ["Road + storm-water drain", "Road only", "N/D — network geometry unavailable"][h(21) % 3]),
+        _field(field_statuses[16], "17. Utilities", ["Electricity + Water", "Water only", "N/D — utility geometry unavailable", "N/A — service not applicable"][h(22) % 4]),
+        _field(field_statuses[17], "18. Environmental Zone", ["Not in Eco-Sensitive Zone", "Buffer check: Partial", "N/D — environmental layer unavailable"][h(23) % 3]),
+        _field(field_statuses[18], "19. Restriction Zone", ["None recorded", "Heritage buffer — demo", "N/D — defence/heritage layer unavailable", "N/A"][h(24) % 4]),
+        _field(field_statuses[19], "20. Market Value", f"₹{(38500 + h(25) % 28000):,} / m² (demo circle-rate style attribute)"),
+        _field(field_statuses[20], "21. AI-Derived Info", ["Building: Yes | Floors: 2 | Change: None", "Building: Possible | Floors: N/D | Change: Minor", "N/D — imagery inference not generated"][h(26) % 3], "Demo analytics layer"),
+    ]
+    return {
+        "alu": cell.id,
+        "level": cell.level,
+        "area_m2": cell.area_m2,
+        "parent_alu": pilot_parent().id,
+        "ulpin": "N/D — government ULPIN not imported into fictional demo",
+        "location": {"locality": locality, "district": "Pune", "state": "Maharashtra", "lat": round(lat, 7), "lng": round(lon, 7)},
+        "grid_level": "1 m²" if cell.level == "1m2" else "0.1 m²",
+        "accuracy": "±0.05 m display tolerance — not a survey accuracy claim",
+        "ai_confidence": f"{72 + h(27) % 25}%",
+        "last_updated": f"{10 + h(28) % 18:02d} May 2026 {8 + h(29) % 11:02d}:{h(30) % 60:02d}",
+        "overall_status": overall,
+        "fields": fields,
+        "path": list(cell.path),
+        "note": "All values are deterministic fictional demo attributes for reconciliation testing. Government websites/sources are workflow references, not sources of these demo values.",
+    }
