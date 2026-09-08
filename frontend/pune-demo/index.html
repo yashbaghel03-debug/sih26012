@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pune Pilot Demo — SIH 26012</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=20260909b">
+  <link rel="stylesheet" href="style.css?v=20260909e">
 </head>
 <body>
   <div class="demo-banner"><strong>DEMO SYSTEM</strong> · FICTIONAL RECORD DATA · REAL GEOGRAPHIC CONTEXT · NOT AN OFFICIAL GOVERNMENT WEBSITE</div>
@@ -20,36 +20,10 @@
       <a href="../mock_government_portals/">Seven Portals</a>
     </div>
   </header>
-  <main class="layout">
-    <section class="map-panel">
-      <div id="map"></div>
-      <div class="map-card pilot-card">
-        <strong>Pilot region</strong>
-        <span>Kothrud / Kothrud-South</span>
-        <small>Prepared integration area; the colored cells are project ALU coverage cells, not official cadastral parcel polygons.</small>
-      </div>
-      <div class="map-card legend">
-        <strong>ALU data completeness</strong>
-        <div><i class="swatch green"></i> Green — 19–21 of 21 fields available</div>
-        <div><i class="swatch yellow"></i> Yellow — 15–18 of 21 fields available</div>
-        <div><i class="swatch red"></i> Red — fewer than 15 of 21 fields available</div>
-        <div><i class="swatch white"></i> White — not searched / controversial boundary</div>
-        <small>Pune pilot intentionally has no white cells because every demo ALU has a deterministic 21-field result.</small>
-      </div>
-    </section>
-    <aside class="side-panel">
-      <section class="summary-card">
-        <div class="section-title">Demo dataset</div>
-        <div class="stats" id="stats"><span>Loading ALU catalog…</span></div>
-        <div class="notice">Demo values are deterministic but intentionally imperfect. N/D and N/A are used to show why cross-government retrieval and reconciliation are difficult.</div>
-      </section>
-      <section class="detail-card">
-        <div class="section-title">Selected ALU</div>
-        <div id="detail" class="empty">Click any coloured ALU cell.</div>
-      </section>
-    </aside>
+  <main class="map-shell">
+    <div id="map"></div>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260909d"></script>
+  <script src="app.js?v=20260909e"></script>
 </body>
 </html>
