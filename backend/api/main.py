@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 import os
+import ssl
 import urllib.parse
 import urllib.request
 from functools import lru_cache
@@ -204,7 +205,14 @@ def spatial_levels():
 @lru_cache(maxsize=1)
 def _fetch_geojson(url: str):
     ctx = ssl._create_unverified_context() if url.startswith("https://") else None
-    with urllib.request.urlopen(url, timeout=45, context=ctx) as response:
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+            "Accept": "application/json, application/geo+json, */*;q=0.8",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=45, context=ctx) as response:
         data = json.load(response)
     features = data.get("features") or []
     if not features:
