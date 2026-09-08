@@ -1,10 +1,14 @@
-"""Field-completeness classification for Pune ALU demo cells."""
+"""Field-completeness classification for the Pune ALU pilot.
+
+The detail record and the seven mock government portals share the same seeded
+fictional source bundle. Geographic context remains real; property attributes
+are explicitly fictional demo records.
+"""
 from __future__ import annotations
 from functools import lru_cache
-from hashlib import sha256
 from typing import Any
-from pyproj import Transformer
-from .alu_catalog import cell_details, list_cells, pilot_parent, _one_m_cell
+from .alu_catalog import list_cells, pilot_parent, _one_m_cell
+from .realistic_records import field_bundle, fast_field_count
 
 STATUS_LABELS = {
     "GREEN": "Green — 19–21 of 21 fields available",
@@ -24,7 +28,7 @@ def classify_field_statuses(fields: list[dict[str, Any]]) -> tuple[int, str]:
 
 
 def classify_alu(alu_id: str) -> dict[str, Any]:
-    details = cell_details(alu_id)
+    details = field_bundle(alu_id)
     available, status = classify_field_statuses(details.get("fields", []))
     details["available_fields"] = available
     details["total_fields"] = 21
@@ -38,12 +42,11 @@ def coverage_cells(conn, level: str = "1m2", limit: int = 10_000, offset: int = 
     base = list_cells(conn, level, limit, offset)
     items = []
     for item in base["items"]:
-        detail = cell_details(item["alu_id"])
-        available, status = classify_field_statuses(detail.get("fields", []))
-        item["status"] = status
+        available = fast_field_count(item["alu_id"])
+        item["status"] = "GREEN" if available >= 19 else "YELLOW" if available >= 15 else "RED"
         item["available_fields"] = available
         item["total_fields"] = 21
-        item["coverage_label"] = STATUS_LABELS[status]
+        item["coverage_label"] = STATUS_LABELS[item["status"]]
         items.append(item)
     return {
         "level": level,
@@ -54,37 +57,9 @@ def coverage_cells(conn, level: str = "1m2", limit: int = 10_000, offset: int = 
     }
 
 
-def _stable_int(alu_id: str, slot: int = 0) -> int:
-    return int(sha256(f"{alu_id}|{slot}".encode("utf-8")).hexdigest()[:12], 16)
-
-
-def _fast_field_count(alu_id: str) -> int:
-    """Mirror cell_details() status rules without building all 21 field objects."""
-    h = lambda slot=0: _stable_int(alu_id, slot)
-    overall = ["AVAILABLE", "PARTIAL", "N/D", "AVAILABLE", "PARTIAL"][h(99) % 5]
-    if overall == "N/D" and h(100) % 7 == 0:
-        overall = "N/A"
-    statuses = [overall] * 21
-    for i in (4, 8, 11, 15, 18):
-        if h(i + 200) % 4 == 0:
-            statuses[i] = "N/D"
-    for i in (2, 7, 13, 16):
-        if h(i + 300) % 5 == 0:
-            statuses[i] = "N/A"
-    return sum(s not in {"N/D", "N/A"} for s in statuses)
-
-
-def _classification(available: int) -> str:
-    if available >= 19:
-        return "GREEN"
-    if available >= 15:
-        return "YELLOW"
-    return "RED"
-
-
 @lru_cache(maxsize=2)
 def compact_coverage_grid(level: str = "1m2") -> dict[str, Any]:
-    """Compact DB-free 100x100 coverage payload; cached for the process lifetime."""
+    """Compact DB-free 100x100 grid using the same linked field-status rules as ALU details."""
     if level != "1m2":
         raise ValueError("compact coverage grid currently supports 1m2")
     parent = pilot_parent()
@@ -93,10 +68,17 @@ def compact_coverage_grid(level: str = "1m2") -> dict[str, Any]:
     for row in range(100):
         for col in range(100):
             alu_id = _one_m_cell(parent, row, col).id
-            available = _fast_field_count(alu_id)
-            status = _classification(available)
+            available = fast_field_count(alu_id)
+            status = "GREEN" if available >= 19 else "YELLOW" if available >= 15 else "RED"
             counts[status] += 1
-            cells.append({"alu_id": alu_id, "row": row, "col": col, "available_fields": available, "total_fields": 21, "status": status})
+            cells.append({
+                "alu_id": alu_id,
+                "row": row,
+                "col": col,
+                "available_fields": available,
+                "total_fields": 21,
+                "status": status,
+            })
     return {
         "level": "1m2",
         "rows": 100,
@@ -105,13 +87,14 @@ def compact_coverage_grid(level: str = "1m2") -> dict[str, Any]:
         "items": cells,
         "status_labels": STATUS_LABELS,
         "status_counts": counts,
-        "bbox": compact_bbox(parent),
+        "bbox": _bbox(parent),
         "white_cells": 0,
         "rule": "GREEN=19-21, YELLOW=15-18, RED=0-14, WHITE=not searched/controversial boundary",
     }
 
 
-def compact_bbox(cell) -> list[list[float]]:
+def _bbox(cell) -> list[list[float]]:
+    from pyproj import Transformer
     x1, y1, x2, y2 = cell.mercator_bounds
     tr = Transformer.from_crs(3857, 4326, always_xy=True)
     west, south = tr.transform(x1, y1)
