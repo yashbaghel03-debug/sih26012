@@ -1,6 +1,6 @@
 /* Bootstrap the India WebGIS with the LGD-derived national political boundary.
- * Keep the existing map renderer unchanged while supplying it the broader
- * national clipping geometry that includes the requested J&K/Ladakh extent.
+ * Load the Pune pilot integration layer before the map renderer so the
+ * prepared Pune ALU coverage can appear only after the user zooms into it.
  */
 (() => {
   'use strict';
@@ -26,10 +26,22 @@
   }
 
   function loadMap() {
-    const script = document.createElement('script');
-    script.src = 'map.js?v=20260907k';
-    script.defer = false;
-    document.body.appendChild(script);
+    const integration = document.createElement('script');
+    integration.src = 'pune-coverage-integration.js?v=20260909b';
+    integration.defer = false;
+    integration.onload = () => {
+      const script = document.createElement('script');
+      script.src = 'map.js?v=20260909l';
+      script.defer = false;
+      document.body.appendChild(script);
+    };
+    integration.onerror = () => {
+      const script = document.createElement('script');
+      script.src = 'map.js?v=20260909l';
+      script.defer = false;
+      document.body.appendChild(script);
+    };
+    document.body.appendChild(integration);
   }
 
   function normalize(geo) {
@@ -44,22 +56,16 @@
   }
 
   let cached = null;
-  let cachedIsNational = false;
   try {
     cached = normalize(JSON.parse(localStorage.getItem(cacheKey) || 'null'));
-    cachedIsNational = !!cached;
   } catch (_) {}
 
-  // Only the new national cache is trusted for immediate loading. The older
-  // narrower cache remains a last-resort fallback if the national source is down.
   if (cached) {
     install(cached);
     loadMap();
   }
 
   (async () => {
-    // On a fresh browser, fetch the national polygon before starting map.js so
-    // the first renderer state already contains POK and Aksai Chin.
     if (!cached) {
       try {
         const geo = await getJson(nationalBoundary);
@@ -73,7 +79,6 @@
         console.warn('LGD-derived India national boundary unavailable', error);
       }
 
-      // Source/network fallback only when the national source is unavailable.
       try {
         const legacy = normalize(JSON.parse(localStorage.getItem(legacyKey) || 'null'));
         if (legacy) {
@@ -94,12 +99,11 @@
         console.warn('Fallback India boundary unavailable', error);
       }
 
-      document.getElementById('searchHint').textContent = 'India boundary could not be loaded. Start FastAPI/PostGIS or restore network access.';
+      const hint = document.getElementById('searchHint');
+      if (hint) hint.textContent = 'India boundary could not be loaded. Start FastAPI/PostGIS or restore network access.';
       return;
     }
 
-    // Refresh national cache in the background. The already-loaded map is left
-    // untouched, so there is no basemap/UI change during normal use.
     try {
       const geo = await getJson(nationalBoundary);
       if (geo) {
