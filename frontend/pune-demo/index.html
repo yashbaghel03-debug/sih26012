@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pune Pilot Demo — SIH 26012</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=20260909a">
+  <link rel="stylesheet" href="style.css?v=20260909b">
 </head>
 <body>
   <div class="demo-banner"><strong>DEMO SYSTEM</strong> · FICTIONAL RECORD DATA · REAL GEOGRAPHIC CONTEXT · NOT AN OFFICIAL GOVERNMENT WEBSITE</div>
@@ -13,47 +13,43 @@
     <div>
       <div class="eyebrow">SIH 2026 · PROBLEM STATEMENT 26012</div>
       <h1>Pune Pilot — Government Data Integration Demo</h1>
-      <p>Kothrud / Kothrud-South, Pune · deterministic ALU visualization and cross-source data completeness</p>
+      <p>Kothrud / Kothrud-South, Pune · deterministic ALU visualization and 21-field data completeness</p>
     </div>
     <div class="actions">
       <a href="../">Back to India Map</a>
       <a href="../mock_government_portals/">Seven Portals</a>
     </div>
   </header>
-
   <main class="layout">
     <section class="map-panel">
       <div id="map"></div>
       <div class="map-card pilot-card">
         <strong>Pilot region</strong>
         <span>Kothrud / Kothrud-South</span>
-        <small>Highlighted area is a pilot study extent, not a cadastral boundary.</small>
+        <small>Prepared integration area; the colored cells are project ALU coverage cells, not official cadastral parcel polygons.</small>
       </div>
       <div class="map-card legend">
-        <strong>Cell data completeness</strong>
-        <div><i class="swatch green"></i> Green — AVAILABLE / strong source coverage</div>
-        <div><i class="swatch yellow"></i> Yellow — PARTIAL / mixed availability</div>
-        <div><i class="swatch red"></i> Red — N/D / limited public data</div>
-        <div><i class="swatch gray"></i> Grey — N/A / not applicable</div>
-        <small>These are demo integration cells, not official parcel polygons.</small>
+        <strong>ALU data completeness</strong>
+        <div><i class="swatch green"></i> Green — 19–21 of 21 fields available</div>
+        <div><i class="swatch yellow"></i> Yellow — 15–18 of 21 fields available</div>
+        <div><i class="swatch red"></i> Red — fewer than 15 of 21 fields available</div>
+        <div><i class="swatch white"></i> White — not searched / controversial boundary</div>
+        <small>Pune pilot intentionally has no white cells because every demo ALU has a deterministic 21-field result.</small>
       </div>
     </section>
-
     <aside class="side-panel">
       <section class="summary-card">
         <div class="section-title">Demo dataset</div>
-        <div class="stats" id="stats"><span>Loading…</span></div>
-        <div class="notice">Records are intentionally imperfect for reconciliation testing. Some sources are N/D and some categories are N/A.</div>
+        <div class="stats" id="stats"><span>Loading ALU catalog…</span></div>
+        <div class="notice">Demo values are deterministic but intentionally imperfect. N/D and N/A are used to show why cross-government retrieval and reconciliation are difficult.</div>
       </section>
-
       <section class="detail-card">
-        <div class="section-title">Selected cell</div>
-        <div id="detail" class="empty">Click a coloured cell on the map.</div>
+        <div class="section-title">Selected ALU</div>
+        <div id="detail" class="empty">Click any coloured ALU cell.</div>
       </section>
     </aside>
   </main>
-
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260909a"></script>
+  <script src="app.js?v=20260909c"></script>
 </body>
 </html>
