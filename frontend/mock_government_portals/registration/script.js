@@ -1,0 +1,2 @@
+import {mountPortal} from '../common.js';
+mountPortal({service:'registration',title:'Pune Property Registration — DEMO',subtitle:'Registration and document reference workflow for the Pune pilot',searchTitle:'Document / Registration Search',fields:[{key:'district',label:'District',placeholder:'Pune'},{key:'sro',label:'Sub-Registrar Office',placeholder:'Pune City Demo SRO'},{key:'date',label:'Date / Period',placeholder:'2026'},{key:'search',label:'Deed / Survey / CTS / Property UID',placeholder:'DEMO-DEED-0001'}]});
