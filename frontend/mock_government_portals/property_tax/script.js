@@ -1,0 +1,2 @@
+import {mountPortal} from '../common.js';
+mountPortal({service:'property_tax',title:'Pune Property Tax & Valuation — DEMO',subtitle:'Municipal property assessment, tax and valuation reference service',searchTitle:'Property Tax Search',fields:[{key:'property_id',label:'Property ID / Tax Number',placeholder:'DEMOUID00000001'},{key:'address',label:'Address / Area',placeholder:'Kothrud'},{key:'survey',label:'Survey / Plot No.',placeholder:'D-68/1'},{key:'year',label:'Assessment Year',placeholder:'2026-27'}]});
