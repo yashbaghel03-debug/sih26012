@@ -4,7 +4,7 @@
 
 **Kothrud / Kothrud-South, Pune Municipal Corporation, Pune district, Maharashtra** is the pilot footprint for the seven mock-government portals.
 
-The selection is based on source coverage rather than locality fame. Public PMC AutoDCR material exposes property-search and GIS workflows involving plot number, survey number, and geo-tagged plot coordinates; public AutoDCR examples also expose Kothrud-South as a property-address jurisdiction. A Maharashtra government pollution-control report publishes a Pune ward map including the Kothrud ward. These make Kothrud a useful small urban pilot for land-record, municipal planning and property-tax style integration. urlPMC AutoDCR search/workflowhttps://autodcr.pmc.gov.in/swc.client/
+The selection is based on source coverage rather than locality fame. Public PMC AutoDCR material exposes property-search and GIS workflows involving plot number, survey number, and geo-tagged plot coordinates; public AutoDCR examples also expose Kothrud-South as a property-address jurisdiction. A Maharashtra government pollution-control report publishes a Pune ward map including the Kothrud ward. These make Kothrud a useful small urban pilot for land-record, municipal planning and property-tax style integration.
 
 ## Source availability
 
