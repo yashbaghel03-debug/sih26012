@@ -19,16 +19,10 @@ from ..pune_demo.api import router as pune_demo_router
 
 MOCK_PORTAL_URL = os.environ.get("MOCK_PORTAL_URL", "http://localhost:8001")
 POSTGIS_DSN = os.environ.get("POSTGIS_DSN", "dbname=sih26012 user=sih password=sih host=localhost port=5432")
-OFFICIAL_INDIA_BOUNDARY_QUERY = os.environ.get(
-    "OFFICIAL_INDIA_BOUNDARY_QUERY",
-    "https://mapservice.gov.in/mapserviceserv176/rest/services/India_Boundary/MapServer/0/query",
-)
-FALLBACK_INDIA_BOUNDARY_URL = os.environ.get(
-    "FALLBACK_INDIA_BOUNDARY_URL",
-    "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson",
-)
-app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.3.0", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS and Pune mock-government integration.")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"], allow_credentials=True, allow_methods=["GET", "POST", "PUT"], allow_headers=["*"])
+OFFICIAL_INDIA_BOUNDARY_QUERY = os.environ.get("OFFICIAL_INDIA_BOUNDARY_QUERY", "https://mapservice.gov.in/mapserviceserv176/rest/services/India_Boundary/MapServer/0/query")
+FALLBACK_INDIA_BOUNDARY_URL = os.environ.get("FALLBACK_INDIA_BOUNDARY_URL", "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson")
+app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.3.1", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS and Pune mock-government integration.")
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"], allow_origin_regex=r"https://.*\.app\.github\.dev", allow_credentials=True, allow_methods=["GET", "POST", "PUT"], allow_headers=["*"])
 app.include_router(pune_demo_router)
 
 @lru_cache(maxsize=64)
@@ -55,229 +49,82 @@ def health():
     return result
 
 @app.get("/api/v1/parcels", tags=["Parcels"])
-def parcels():
-    return {"parcels": list_all_parcels()}
+def parcels(): return {"parcels": list_all_parcels()}
 
 @app.get("/api/v1/parcels/{parcel_id}", tags=["Parcels"])
 def parcel(parcel_id):
     data = load_parcel(parcel_id)
-    if not data:
-        raise HTTPException(404, f"Parcel '{parcel_id}' not found")
+    if not data: raise HTTPException(404, f"Parcel '{parcel_id}' not found")
     return {"parcel_id": data["parcel_id"], "ulpin": data["ulpin"], "description": data["description"], "land_type": data["land_type"], "area_sq_m": data["area_sq_m"], "location": data["location"]}
 
 @app.get("/api/v1/parcels/{parcel_id}/assignment", tags=["Assignment"])
 def assignment(parcel_id):
-    try:
-        result = _assignment(parcel_id)
-    except KeyError:
-        raise HTTPException(404, f"Parcel '{parcel_id}' not found")
+    try: result = _assignment(parcel_id)
+    except KeyError: raise HTTPException(404, f"Parcel '{parcel_id}' not found")
     return result.to_dict()
 
 @app.get("/api/v1/parcels/{parcel_id}/categories", tags=["Assignment"])
 def categories(parcel_id):
-    try:
-        result = _assignment(parcel_id)
-    except KeyError:
-        raise HTTPException(404, f"Parcel '{parcel_id}' not found")
+    try: result = _assignment(parcel_id)
+    except KeyError: raise HTTPException(404, f"Parcel '{parcel_id}' not found")
     return {"parcel_id": parcel_id, "categories": [to_standard_schema(x) for x in sorted(result.records.values(), key=lambda x: x.category_no)]}
 
 @app.get("/api/v1/parcels/{parcel_id}/summary", tags=["Assignment"])
 def summary(parcel_id):
-    try:
-        result = _assignment(parcel_id)
-    except KeyError:
-        raise HTTPException(404, f"Parcel '{parcel_id}' not found")
+    try: result = _assignment(parcel_id)
+    except KeyError: raise HTTPException(404, f"Parcel '{parcel_id}' not found")
     return assignment_summary(result)
 
 @app.get("/api/v1/spatial/cells/{cell_id}", tags=["Spatial"])
 def spatial_cell(cell_id):
-    try:
-        cell = cell_from_id(cell_id)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc))
-    return {
-        "alu": cell.id,
-        "level": cell.level,
-        "root_x": cell.root_ix,
-        "root_y": cell.root_iy,
-        "path": list(cell.path),
-        "width_m": cell.width_m,
-        "height_m": cell.height_m,
-        "area_m2": cell.area_m2,
-        "ancestor_1km": (ancestor_1km(cell).id if cell.level != "100km2" else None),
-        "children": [child.id for child in children(cell)],
-    }
+    try: cell = cell_from_id(cell_id)
+    except ValueError as exc: raise HTTPException(400, str(exc))
+    return {"alu": cell.id, "level": cell.level, "root_x": cell.root_ix, "root_y": cell.root_iy, "path": list(cell.path), "width_m": cell.width_m, "height_m": cell.height_m, "area_m2": cell.area_m2, "ancestor_1km": (ancestor_1km(cell).id if cell.level != "100km2" else None), "children": [child.id for child in children(cell)]}
 
 @app.get("/api/v1/spatial/cell-info/{alu_code}", tags=["Spatial"])
 def cell_info(alu_code: str):
-    try:
-        cell = cell_from_id(alu_code)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc))
-    x1, y1, x2, y2 = cell.mercator_bounds
-    row = None
+    try: cell = cell_from_id(alu_code)
+    except ValueError as exc: raise HTTPException(400, str(exc))
+    x1, y1, x2, y2 = cell.mercator_bounds; row = None
     try:
         with db() as conn, conn.cursor() as cur:
-            cur.execute(
-                """WITH p AS (
-                       SELECT ST_Transform(ST_SetSRID(ST_MakePoint(%s,%s),3857),4326) AS geom
-                   )
-                   SELECT parcel_id, state_code, district_code, village_code,
-                          properties,
-                          ST_X(ST_Centroid(geom)) AS lon,
-                          ST_Y(ST_Centroid(geom)) AS lat
-                   FROM cadastral_parcels, p
-                   WHERE ST_Intersects(cadastral_parcels.geom, p.geom)
-                   ORDER BY id
-                   LIMIT 1""",
-                ((x1 + x2) / 2, (y1 + y2) / 2),
-            )
-            row = cur.fetchone()
-    except Exception:
-        row = None
-
-    props = row[4] if row and isinstance(row[4], dict) else {}
-    common = {}
-    aliases = {
-        "owner": ("owner", "owner_name", "khatedar", "patta_holder", "holder_name"),
-        "land_use": ("land_use", "landuse", "use", "usage"),
-        "land_type": ("land_type", "landtype", "property_type"),
-        "area_m2": ("area_m2", "area_sq_m", "area", "parcel_area"),
-        "registration_no": ("registration_no", "reg_no", "registration"),
-        "deed_type": ("deed_type", "deed"),
-        "registration_date": ("registration_date", "registered_on"),
-        "encumbrance": ("encumbrance", "encumbrances"),
-        "litigation": ("litigation", "case_status"),
-        "building_permission": ("building_permission", "building_permit", "permission_no"),
-        "occupancy": ("occupancy", "occupancy_certificate"),
-        "property_tax": ("property_tax", "tax_status", "tax_paid"),
-        "tax_id": ("tax_id", "pid", "property_id"),
-        "zone": ("zone", "land_zone", "zoning"),
-        "infrastructure": ("infrastructure",),
-        "utilities": ("utilities",),
-        "environmental_zone": ("environmental_zone", "eco_zone"),
-        "restriction_zone": ("restriction_zone", "restriction"),
-        "market_value": ("market_value", "circle_rate"),
-    }
-    for target, keys in aliases.items():
+            cur.execute("""WITH p AS (SELECT ST_Transform(ST_SetSRID(ST_MakePoint(%s,%s),3857),4326) AS geom) SELECT parcel_id,state_code,district_code,village_code,properties,ST_X(ST_Centroid(geom)) AS lon,ST_Y(ST_Centroid(geom)) AS lat FROM cadastral_parcels,p WHERE ST_Intersects(cadastral_parcels.geom,p.geom) ORDER BY id LIMIT 1""", ((x1+x2)/2, (y1+y2)/2)); row=cur.fetchone()
+    except Exception: row=None
+    props=row[4] if row and isinstance(row[4],dict) else {}; common={}; aliases={"owner":("owner","owner_name","khatedar","patta_holder","holder_name"),"land_use":("land_use","landuse","use","usage"),"land_type":("land_type","landtype","property_type"),"area_m2":("area_m2","area_sq_m","area","parcel_area"),"registration_no":("registration_no","reg_no","registration"),"deed_type":("deed_type","deed"),"registration_date":("registration_date","registered_on"),"encumbrance":("encumbrance","encumbrances"),"litigation":("litigation","case_status"),"building_permission":("building_permission","building_permit","permission_no"),"occupancy":("occupancy","occupancy_certificate"),"property_tax":("property_tax","tax_status","tax_paid"),"tax_id":("tax_id","pid","property_id"),"zone":("zone","land_zone","zoning"),"infrastructure":("infrastructure",),"utilities":("utilities",),"environmental_zone":("environmental_zone","eco_zone"),"restriction_zone":("restriction_zone","restriction"),"market_value":("market_value","circle_rate")}
+    for target,keys in aliases.items():
         for key in keys:
-            if key in props and props[key] not in (None, ""):
-                common[target] = props[key]
-                break
-
-    return {
-        "alu": cell.id,
-        "level": cell.level,
-        "width_m": cell.width_m,
-        "height_m": cell.height_m,
-        "area_m2": cell.area_m2,
-        "ulpin": ((props.get("ulpin") or props.get("ULPIN") or props.get("ULPIN_NO") or row[0]) if row else "Not linked"),
-        "parcel_id": (row[0] if row else None),
-        "reference": {
-            "source": (props.get("source") or ("PostGIS cadastral_parcels" if row else "Not linked")),
-            "state_code": (row[1] if row else None),
-            "district_code": (row[2] if row else None),
-            "village_code": (row[3] if row else None),
-            "centroid": {"lat": row[6], "lng": row[5]} if row and row[5] is not None and row[6] is not None else None,
-            "fields": common,
-            "properties": props,
-        },
-    }
+            if key in props and props[key] not in (None,""): common[target]=props[key]; break
+    return {"alu":cell.id,"level":cell.level,"width_m":cell.width_m,"height_m":cell.height_m,"area_m2":cell.area_m2,"ulpin":((props.get("ulpin") or props.get("ULPIN") or props.get("ULPIN_NO") or row[0]) if row else "Not linked"),"parcel_id":(row[0] if row else None),"reference":{"source":(props.get("source") or ("PostGIS cadastral_parcels" if row else "Not linked")),"state_code":(row[1] if row else None),"district_code":(row[2] if row else None),"village_code":(row[3] if row else None),"centroid":{"lat":row[6],"lng":row[5]} if row and row[5] is not None and row[6] is not None else None,"fields":common,"properties":props}}
 
 @app.get("/api/v1/spatial/levels", tags=["Spatial"])
 def spatial_levels():
-    return {
-        "levels": [
-            {
-                "name": name,
-                "side_m": spec["side_m"],
-                "area_m2": spec["side_m"] ** 2,
-                "children": spec["children"],
-                "kind": spec["kind"],
-                "depth": LEVEL_ORDER.index(name),
-            }
-            for name, spec in LEVEL_SPECS.items()
-        ],
-        "root_code_length": 6,
-        "child_segment_length": 2,
-        "base36": "0-9A-Z",
-        "mixed_rule": "every root and hierarchy segment contains at least one letter and one number",
-    }
+    return {"levels":[{"name":name,"side_m":spec["side_m"],"area_m2":spec["side_m"]**2,"children":spec["children"],"kind":spec["kind"],"depth":LEVEL_ORDER.index(name)} for name,spec in LEVEL_SPECS.items()],"root_code_length":6,"child_segment_length":2,"base36":"0-9A-Z","mixed_rule":"every root and hierarchy segment contains at least one letter and one number"}
 
 @lru_cache(maxsize=1)
 def _fetch_geojson(url: str):
-    ctx = ssl._create_unverified_context() if url.startswith("https://") else None
-    request = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-            "Accept": "application/json, application/geo+json, */*;q=0.8",
-        },
-    )
-    with urllib.request.urlopen(request, timeout=45, context=ctx) as response:
-        data = json.load(response)
-    features = data.get("features") or []
-    if not features:
-        raise RuntimeError(f"GeoJSON source returned no features: {url}")
-    return {"type": "FeatureCollection", "features": features}
-
+    ctx=ssl._create_unverified_context() if url.startswith("https://") else None; request=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0","Accept":"application/json, application/geo+json, */*;q=0.8"})
+    with urllib.request.urlopen(request,timeout=45,context=ctx) as response: data=json.load(response)
+    features=data.get("features") or []
+    if not features: raise RuntimeError(f"GeoJSON source returned no features: {url}")
+    return {"type":"FeatureCollection","features":features}
 
 @lru_cache(maxsize=1)
 def _official_india_boundary():
-    params = urllib.parse.urlencode({
-        "where": "1=1",
-        "outFields": "*",
-        "returnGeometry": "true",
-        "outSR": "4326",
-        "f": "geojson",
-    })
-    url = OFFICIAL_INDIA_BOUNDARY_QUERY + "?" + params
-    try:
-        return _fetch_geojson(url)
-    except Exception:
-        return _fetch_geojson(FALLBACK_INDIA_BOUNDARY_URL)
-
+    params=urllib.parse.urlencode({"where":"1=1","outFields":"*","returnGeometry":"true","outSR":"4326","f":"geojson"}); url=OFFICIAL_INDIA_BOUNDARY_QUERY+"?"+params
+    try: return _fetch_geojson(url)
+    except Exception: return _fetch_geojson(FALLBACK_INDIA_BOUNDARY_URL)
 
 @app.get("/api/v1/spatial/india-boundaries", tags=["Spatial"])
 def india_boundaries():
-    """Return the national boundary from the official GIS source when available,
-    otherwise use a cached public GeoJSON fallback that matches the needed render extent.
-    """
-    try:
-        return _official_india_boundary()
+    try: return _official_india_boundary()
     except Exception as official_exc:
         try:
             with db() as conn, conn.cursor() as cur:
-                cur.execute(
-                    """SELECT ST_AsGeoJSON(
-                               ST_Multi(
-                                   ST_CollectionExtract(
-                                       ST_UnaryUnion(ST_Collect(geom)), 3
-                                   )
-                               )
-                           )::json AS geometry
-                       FROM admin_boundaries
-                       WHERE level = 'state'"""
-                )
-                row = cur.fetchone()
-            if not row or not row[0]:
-                raise RuntimeError("No fallback boundary in PostGIS")
-            return {
-                "type": "FeatureCollection",
-                "features": [{
-                    "type": "Feature",
-                    "id": "india-national-boundary-fallback",
-                    "properties": {"name": "India", "source": "PostGIS state boundary fallback"},
-                    "geometry": row[0],
-                }],
-            }
-        except Exception as db_exc:
-            raise HTTPException(503, f"Official India boundary unavailable: {official_exc}; PostGIS fallback unavailable: {db_exc}")
+                cur.execute("""SELECT ST_AsGeoJSON(ST_Multi(ST_CollectionExtract(ST_UnaryUnion(ST_Collect(geom)),3)))::json AS geometry FROM admin_boundaries WHERE level='state'"""); row=cur.fetchone()
+            if not row or not row[0]: raise RuntimeError("No fallback boundary in PostGIS")
+            return {"type":"FeatureCollection","features":[{"type":"Feature","id":"india-national-boundary-fallback","properties":{"name":"India","source":"PostGIS state boundary fallback"},"geometry":row[0]}]}
+        except Exception as db_exc: raise HTTPException(503,f"Official India boundary unavailable: {official_exc}; PostGIS fallback unavailable: {db_exc}")
 
 @app.post("/api/v1/rounds/demo", tags=["Rounds"])
 def process_demo_rounds():
-    pids = [p["parcel_id"] for p in list_all_parcels()]
-    processor = RoundProcessor(base_url=MOCK_PORTAL_URL)
-    roots = [Cell("100km2", 0, idx, ()) for idx in range(len(pids))]
-    targets = {"100km2": [RoundCell(cell, pids[idx]) for idx, cell in enumerate(roots)]}
-    return {"rounds": [result.to_dict() for result in processor.process_all_levels(targets)]}
+    pids=[p["parcel_id"] for p in list_all_parcels()]; processor=RoundProcessor(base_url=MOCK_PORTAL_URL); roots=[Cell("100km2",0,idx,()) for idx in range(len(pids))]; targets={"100km2":[RoundCell(cell,pids[idx]) for idx,cell in enumerate(roots)]}; return {"rounds":[result.to_dict() for result in processor.process_all_levels(targets)]}
