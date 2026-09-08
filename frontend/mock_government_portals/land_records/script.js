@@ -1,0 +1,2 @@
+import {mountPortal} from '../common.js';
+mountPortal({service:'land_records',title:'Maharashtra Land Records — DEMO',subtitle:'Record of Rights, 7/12, 8A, Property Card and Ferfar reference service',searchTitle:'Land Record Search',fields:[{key:'district',label:'District',placeholder:'Pune'},{key:'taluka',label:'Taluka / Office',placeholder:'Pune City'},{key:'village',label:'Village / Peth',placeholder:'Kothrud'},{key:'search',label:'Survey / Gat / CTS / Property UID',placeholder:'D-68/1 or K-D0200'}]});
