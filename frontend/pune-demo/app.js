@@ -2,13 +2,18 @@
   'use strict';
   const ROOT='A016Y8',PARENT_PATH=[76,2],BASE36='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const TOKENS=[...BASE36].flatMap(a=>[...BASE36].map(b=>a+b)).filter(t=>/[A-Z]/.test(t)&&/[0-9]/.test(t)).slice(0,100);
+  // Single source of truth: complete Pune pilot data extent.
   const PILOT_BOUNDS=[[18.506974,73.807223],[18.507824,73.808073]],KOTHRUD_CENTER=[18.507399,73.807648];
   const API=(()=>{const q=new URLSearchParams(location.search).get('api');if(q)return q.replace(/\/$/,'');if(location.hostname.endsWith('.app.github.dev'))return `https://${location.hostname.replace(/-\d+\.app\.github\.dev$/,'-8000.app.github.dev')}`;return 'http://localhost:8000'})();
   const STATUS={GREEN:{cls:'green',label:'Green — 19–21 / 21 fields',color:'#22c55e'},YELLOW:{cls:'yellow',label:'Yellow — 15–18 / 21 fields',color:'#facc15'},RED:{cls:'red',label:'Red — fewer than 15 / 21 fields',color:'#ef4444'},WHITE:{cls:'white',label:'White — not searched / controversial boundary',color:'#ffffff'}};
   const map=L.map('map',{zoomControl:true,minZoom:18,maxZoom:22,maxBounds:PILOT_BOUNDS,maxBoundsViscosity:1,center:KOTHRUD_CENTER,zoom:20});
-  const tiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+  // Keep the real basemap visible at pilot zoom while cropping the visible map to the data extent.
+  const tiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19,bounds:PILOT_BOUNDS,noWrap:true,attribution:'© OpenStreetMap contributors'}).addTo(map);
   tiles.on('tileerror',e=>{if(e?.tile)e.tile.style.opacity='0'});
-  map.fitBounds(PILOT_BOUNDS,{padding:[0,0],animate:false});map.setMinZoom(map.getZoom());map.setMaxBounds(PILOT_BOUNDS);
+  map.fitBounds(PILOT_BOUNDS,{padding:[0,0],animate:false});
+  map.setMinZoom(map.getZoom());
+  map.setMaxBounds(PILOT_BOUNDS);
+  setTimeout(()=>map.invalidateSize({pan:false}),0);
   const canvas=L.DomUtil.create('canvas','pune-coverage-canvas');canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:445;pointer-events:auto;background:transparent !important';map.getPane('overlayPane').appendChild(canvas);const ctx=canvas.getContext('2d',{alpha:true});
   function stableAvailable(row,col){const v=(row*37+col*17+row*col*3)%100;if(v<55)return 19+((row+col)%3);if(v<82)return 15+((row*3+col)%4);return 8+((row*5+col*7)%7)}
   function classify(n){return n>=19?'GREEN':n>=15?'YELLOW':'RED'}
