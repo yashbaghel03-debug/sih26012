@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from .store import SOURCES, attach_geometry, get_all_information, get_alu_link, get_parcel, get_records, list_parcels, seed_demo, get_conn
-from .alu_catalog import catalog_stats, list_cells, seed_catalog
+from .alu_catalog import catalog_stats, list_cells, seed_catalog, cell_details
 
 router=APIRouter(prefix='/api/v1/pune-demo',tags=['Pune Demo Portals'])
 
@@ -84,6 +84,13 @@ def alu_catalog_cells(level:str='1m2',limit:int=Query(10000,ge=1,le=100000),offs
             return list_cells(conn,level,limit,offset)
     except ValueError as exc: raise HTTPException(400,str(exc))
     except Exception as exc: raise HTTPException(503,f'ALU catalog unavailable: {exc}')
+
+@router.get('/alu-catalog/cells/{alu_id}/details')
+def alu_catalog_cell_details(alu_id: str):
+    try:
+        return cell_details(alu_id)
+    except ValueError as exc:
+        raise HTTPException(400,str(exc))
 
 @router.get('/parcels/{parcel_id}/land-records')
 def land_records(parcel_id:str): return records_response(parcel_id,'land_records')
