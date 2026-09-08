@@ -1,0 +1,2 @@
+import {mountPortal} from '../common.js';
+mountPortal({service:'legal_encumbrance',title:'Maharashtra Legal Property Records — DEMO',subtitle:'Encumbrance, mortgage, lien, litigation and restriction reference service',searchTitle:'Legal / Charge Search',fields:[{key:'parcel',label:'Property ID / Survey / CTS',placeholder:'DEMOUID00000001'},{key:'party',label:'Borrower / Institution',placeholder:'Demo Maharashtra Cooperative Bank'},{key:'status',label:'Status',placeholder:'Active / N/D'},{key:'case',label:'Case / Charge Reference',placeholder:'DEMO-LEGAL-001'}]});
