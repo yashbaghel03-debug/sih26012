@@ -1,0 +1,4 @@
+/* Keep the Pune demo focused on the prepared square data area. */
+.map-shell{height:calc(100vh - 103px);display:grid;place-items:center;background:#e9edf2;padding:10px;overflow:hidden}
+.map-shell #map{width:min(92vw,calc(100vh - 123px));height:min(92vw,calc(100vh - 123px));aspect-ratio:1 / 1;flex:none;position:relative;border:1px solid #334155;border-radius:4px;box-shadow:0 8px 28px rgba(15,23,42,.14);overflow:hidden}
+@media(max-width:700px){.map-shell{height:calc(100vh - 125px);padding:8px}.map-shell #map{width:min(94vw,calc(100vh - 145px));height:min(94vw,calc(100vh - 145px))}}
