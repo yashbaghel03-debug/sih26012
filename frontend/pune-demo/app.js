@@ -1,0 +1,32 @@
+const API = (()=>{const q=new URLSearchParams(location.search).get('api');if(q)return q.replace(/\/$/,'');if(location.hostname.endsWith('.app.github.dev'))return `https://${location.hostname.replace(/-\d+\.app\.github\.dev$/,'-8000.app.github.dev')}`;return 'http://localhost:8000'})();
+
+const PILOT={center:[18.5074,73.8077],bounds:[[18.4945,73.7935],[18.5205,73.8235]]};
+const STATUS_CLASS={AVAILABLE:'green',PARTIAL:'yellow','N/D':'red','N/A':'gray'};
+const STATUS_TEXT={AVAILABLE:'AVAILABLE',PARTIAL:'PARTIAL','N/D':'N/D — not publicly verified','N/A':'N/A — not applicable'};
+
+const map=L.map('map',{zoomControl:true,minZoom:13,maxZoom:19}).setView(PILOT.center,15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+L.rectangle(PILOT.bounds,{color:'#7f1d1d',weight:2,dashArray:'7 6',fill:false,interactive:false}).addTo(map);
+
+const layers=[];
+const grid=new Map();
+
+function escapeHtml(v){return String(v??'N/D').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function colorFor(status){return STATUS_CLASS[status]||'gray'}
+function centerOf(row,col,cols=6,rows=4){const latSpan=PILOT.bounds[1][0]-PILOT.bounds[0][0],lngSpan=PILOT.bounds[1][1]-PILOT.bounds[0][1];const lat=PILOT.bounds[0][0]+(row+.5)/rows*latSpan;const lng=PILOT.bounds[0][1]+(col+.5)/cols*lngSpan;return [lat,lng]}
+function rectOf(row,col,cols=6,rows=4){const latSpan=PILOT.bounds[1][0]-PILOT.bounds[0][0],lngSpan=PILOT.bounds[1][1]-PILOT.bounds[0][1];const h=latSpan/rows,w=lngSpan/cols;return [[PILOT.bounds[0][0]+row*h,PILOT.bounds[0][1]+col*w],[PILOT.bounds[0][0]+(row+1)*h,PILOT.bounds[0][1]+(col+1)*w]]}
+
+function mercatorMeters(lat,lng){const R=6378137,world=2*Math.PI*R;return [R*lng*Math.PI/180,R*Math.log(Math.tan(Math.PI/4+lat*Math.PI/360))]}
+function b36(n,w){let s='';do{const r=n%36;s='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'[r]+s;n=Math.floor(n/36)}while(n);return s.padStart(w,'0')}
+function aluRoot(lat,lng){const [x,y]=mercatorMeters(lat,lng),rx=Math.floor((x-7570000)/10000),ry=Math.floor((y-700000)/10000);if(rx<0||rx>=400||ry<0)return 'DEMO';const flat=ry*400+rx,b=Math.floor(flat/(36**4)),r=flat%(36**4);return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(b/10)]+'0123456789'[b%10]+b36(r,4)}
+function alu1km(lat,lng){const root=aluRoot(lat,lng);if(root==='DEMO')return 'DEMO';const [x,y]=mercatorMeters(lat,lng),rx=Math.floor((x-7570000)/10000),ry=Math.floor((y-700000)/10000),rootX=7570000+rx*10000,rootY=700000+ry*10000;const ix=Math.max(0,Math.min(9,Math.floor((x-rootX)/1000))),iy=Math.max(0,Math.min(9,Math.floor((y-rootY)/1000)));const idx=iy*10+ix;const tokens=[...('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')].flatMap(a=>[...'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(b=>a+b)).filter(t=>/[A-Z]/.test(t)&&/[0-9]/.test(t)).slice(0,100);return `${root}-${tokens[idx]}`}
+
+function renderStats(rows){const counts={green:0,yellow:0,red:0,gray:0};rows.forEach(r=>counts[colorFor(r.data_status)]++);document.getElementById('stats').innerHTML=[['green','Good coverage',counts.green],['yellow','Partial',counts.yellow],['red','N/D',counts.red],['gray','N/A',counts.gray]].map(x=>`<div class="stat"><b>${x[2]}</b><span>${x[1]}</span></div>`).join('')}
+
+function renderDetails(row,full){const status=row.data_status,cls=colorFor(status);const cats=Object.entries(full.categories||{}).map(([k,v])=>`<div class="source-row"><span>${escapeHtml(k.replaceAll('_',' '))}</span><span class="pill ${colorFor(v.status)}">${escapeHtml(v.status)}</span></div>`).join('');document.getElementById('detail').innerHTML=`<div class="selected-head"><strong>${escapeHtml(row.parcel_id)}</strong><span class="pill ${cls}">${escapeHtml(STATUS_TEXT[status]||status)}</span></div><div class="cell-note">This coloured rectangle is a <b>demo integration cell</b>. It is not an official cadastral parcel polygon. Real cadastral geometry remains N/D until an authorised dataset is supplied.</div><table class="data-table"><tr><th>Region</th><td>${escapeHtml(row.locality)}, ${escapeHtml(row.district)}</td></tr><tr><th>Survey / CTS</th><td>${escapeHtml(row.survey_number)} / ${escapeHtml(row.cts_number)}</td></tr><tr><th>Property UID</th><td>${escapeHtml(row.property_uid)}</td></tr><tr><th>ALU demo cell</th><td>${escapeHtml(full.alu?.alu_id||alu1km(full.lat||PILOT.center[0],full.lng||PILOT.center[1]))}</td></tr><tr><th>ULPIN</th><td>${escapeHtml(row.ulpin||'N/D — not imported')}</td></tr><tr><th>Area attribute</th><td>${escapeHtml(row.area_m2)} m² <small>(fictional demo attribute)</small></td></tr></table><div class="section-title" style="margin-top:13px">Source availability</div><div class="source-list">${cats||'<div class="empty">No source records.</div>'}</div>`}
+
+async function getJson(path){const r=await fetch(API+path,{headers:{Accept:'application/json'}});const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{}if(!r.ok)throw Error(d.detail||d.message||`HTTP ${r.status}`);return d}
+
+async function init(){try{const d=await getJson('/api/v1/pune-demo/parcels?limit=50'),rows=d.parcels||[];if(!rows.length)throw Error('No Pune demo records are seeded.');renderStats(rows);rows.forEach((row,i)=>{const r=Math.floor(i/6),c=i%6,rect=rectOf(r,c),status=row.data_status,cls=colorFor(status);const layer=L.rectangle(rect,{color:'#334155',weight:1,opacity:.8,fillColor:{green:'#22c55e',yellow:'#facc15',red:'#ef4444',gray:'#9ca3af'}[cls],fillOpacity:.58});layer.bindTooltip(`<strong>${escapeHtml(row.parcel_id)}</strong><br>${escapeHtml(STATUS_TEXT[status]||status)}`,{sticky:true,direction:'top'});layer.on('click',async()=>{document.getElementById('detail').innerHTML='<div class="empty">Loading selected record…</div>';try{const full=await getJson(`/api/v1/pune-demo/parcels/${encodeURIComponent(row.parcel_id)}`);full.lat=centerOf(r,c)[0];full.lng=centerOf(r,c)[1];renderDetails(row,full)}catch(e){document.getElementById('detail').innerHTML=`<div class="empty">${escapeHtml(e.message)}</div>`}});layer.addTo(map);layers.push(layer);grid.set(row.parcel_id,layer)});const group=L.featureGroup(layers);map.fitBounds(group.getBounds(),{padding:[55,55]});}catch(e){document.getElementById('stats').innerHTML='<div class="empty">Backend unavailable</div>';document.getElementById('detail').innerHTML=`<div class="empty">${escapeHtml(e.message)}<br><br>Start FastAPI on port 8000 and seed the Pune demo.</div>`}}
+
+init();
