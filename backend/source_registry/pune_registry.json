@@ -1,0 +1,10 @@
+{
+  "MH_LAND_RECORDS": {"department":"Revenue Department, Government of Maharashtra","service":"7/12, 8A, Property Card, Ferfar","official_reference_url":"https://mahabhumi.gov.in/"},
+  "MH_JURISDICTION": {"department":"Mahavillages / Land Records","service":"ULPIN, CTS, Survey/Gat and jurisdiction","official_reference_url":"https://mahavillages.mahabhumi.gov.in/newjurisdiction.php"},
+  "BHUNAKSHA_MH": {"department":"NIC / Maharashtra cadastral mapping","service":"Cadastral map and parcel search","official_reference_url":"https://bhunaksha.nic.in/bhunaksha/"},
+  "MH_REGISTRATION": {"department":"Registration & Stamps, Government of Maharashtra","service":"Property registration / deed workflow","official_reference_url":"https://igrmaharashtra.gov.in/"},
+  "PMC_BUILDING": {"department":"Pune Municipal Corporation","service":"AutoDCR / building proposal and GIS","official_reference_url":"https://autodcr.pmc.gov.in/swc.client/"},
+  "PMC_PROPERTY_TAX": {"department":"Pune Municipal Corporation","service":"Property taxation / assessment","official_reference_url":"https://pmc.gov.in/"},
+  "UTILITY_INFRA": {"department":"Municipal utility / infrastructure agencies","service":"Utility and infrastructure reference","official_reference_url":"https://pmc.gov.in/"},
+  "LEGAL_ENCUMBRANCE": {"department":"Registration / courts / charge reference","service":"Encumbrance, mortgage and litigation","official_reference_url":"https://mahabhumi.gov.in/"}
+}
