@@ -5,21 +5,34 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pune Pilot Demo — SIH 26012</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=20260909i">
+  <link rel="stylesheet" href="style.css?v=20260909j">
   <link rel="stylesheet" href="hover.css?v=20260909a">
   <link rel="stylesheet" href="pilot-viewport.css?v=20260909a">
 </head>
 <body>
   <div class="demo-banner"><strong>DEMO SYSTEM</strong> · FICTIONAL RECORD DATA · REAL GEOGRAPHIC CONTEXT · NOT AN OFFICIAL GOVERNMENT WEBSITE</div>
   <header class="topbar">
-    <div>
+    <div class="brand-block">
       <div class="eyebrow">SIH 2026 · PROBLEM STATEMENT 26012</div>
       <h1>Pune Pilot — Government Data Integration Demo</h1>
       <p>Kothrud / Kothrud-South, Pune · linked seven-portal demo records and 21-field ALU coverage</p>
     </div>
-    <div class="actions">
-      <a href="../">Back to India Map</a>
-      <a href="../mock_government_portals/">Seven Portals</a>
+    <div class="toolbar">
+      <form id="puneSearchForm" class="pune-search-form" autocomplete="off">
+        <input id="puneAluSearch" type="search" placeholder="Enter ALU number" aria-label="Enter ALU number">
+        <button type="submit">Search</button>
+      </form>
+      <div class="toolbar-hint" id="puneSearchHint">Search the ALU code to inspect its linked fictional record.</div>
+      <div class="legend-inline" aria-label="ALU data completeness legend">
+        <span><i class="swatch green"></i>Green · 19–21</span>
+        <span><i class="swatch yellow"></i>Yellow · 15–18</span>
+        <span><i class="swatch red"></i>Red · &lt;15</span>
+        <span><i class="swatch white"></i>White · not searched</span>
+      </div>
+      <div class="toolbar-actions">
+        <a href="../">Back to India Map</a>
+        <a href="../mock_government_portals/">Seven Portals</a>
+      </div>
     </div>
   </header>
   <main class="map-shell">
@@ -27,6 +40,6 @@
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="pilot-viewport.js?v=20260909a"></script>
-  <script src="app.js?v=20260909i"></script>
+  <script src="app.js?v=20260909j"></script>
 </body>
 </html>
