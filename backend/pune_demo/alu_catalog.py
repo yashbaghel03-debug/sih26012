@@ -164,6 +164,7 @@ def list_cells(conn, level: str = "1m2", limit: int = 10_000, offset: int = 0) -
             item["bbox"] = _bbox(cell)
         else:
             item["terminal_index"] = int(cell_from_id(item["alu_id"]).path[-1])
+            item["parent_bbox"] = _bbox(cell)
     return {"level": level, "count": len(items), "items": items, "status_labels": STATUS_LABELS}
 
 
@@ -182,19 +183,13 @@ def _field(status: str, label: str, value: str, source: str = "Demo reconciliati
 
 
 def cell_details(alu_id: str) -> dict[str, Any]:
-    """Return a complete deterministic 21-field demo record for any catalog ALU.
-
-    Values are fictional, imperfect, and stable: the same ALU always receives
-    the same values/statuses until the generator rules are intentionally changed.
-    """
+    """Return a complete deterministic 21-field demo record for any catalog ALU."""
     cell = cell_from_id(alu_id)
     if cell.level not in {"1m2", "0.1m2"}:
         raise ValueError("ALU details are available for the Pune 1m2 and 0.1m2 catalog levels")
-
     h = lambda slot=0: _stable_int(cell.id, slot)
     overall = ["AVAILABLE", "PARTIAL", "N/D", "AVAILABLE", "PARTIAL"][h(99) % 5]
-    if overall == "N/D" and h(100) % 7 == 0:
-        overall = "N/A"
+    if overall == "N/D" and h(100) % 7 == 0: overall = "N/A"
     locality = ["Kothrud", "Kothrud-South", "Paud Road", "Karve Road edge"][h(1) % 4]
     holder = ["Aarav Kulkarni", "Ishita Deshmukh", "Rohan Patil", "Mira Joshi", "Kabir Pawar", "Nandini Bhosale"][h(2) % 6]
     lat = 18.4945 + (h(3) % 2600) / 100000.0
@@ -202,12 +197,9 @@ def cell_details(alu_id: str) -> dict[str, Any]:
     area = 1.0 if cell.level == "1m2" else 0.1
     field_statuses = [overall] * 21
     for i in (4, 8, 11, 15, 18):
-        if h(i + 200) % 4 == 0:
-            field_statuses[i] = "N/D"
+        if h(i + 200) % 4 == 0: field_statuses[i] = "N/D"
     for i in (2, 7, 13, 16):
-        if h(i + 300) % 5 == 0:
-            field_statuses[i] = "N/A"
-
+        if h(i + 300) % 5 == 0: field_statuses[i] = "N/A"
     fields = [
         _field(field_statuses[0], "1. Ownership (RoR)", f"{holder} — DEMO HOLDER\nS/o Demo Holder"),
         _field(field_statuses[1], "2. Land Use", ["Residential (Urban)", "Mixed Use", "Commercial", "Institutional"][h(5) % 4]),
@@ -245,5 +237,6 @@ def cell_details(alu_id: str) -> dict[str, Any]:
         "overall_status": overall,
         "fields": fields,
         "path": list(cell.path),
+        "bbox": _bbox(cell),
         "note": "All values are deterministic fictional demo attributes for reconciliation testing. Government websites/sources are workflow references, not sources of these demo values.",
     }
