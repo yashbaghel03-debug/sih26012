@@ -22,7 +22,14 @@
   const cellById=new Map(cells.map(c=>[c.alu_id,c]));
 
   const map=L.map('map',{zoomControl:true,minZoom:18,maxZoom:22,maxBounds:PILOT_BOUNDS,maxBoundsViscosity:1,center:KOTHRUD_CENTER,zoom:20});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+
+  // Same basemap selector as the main India map.
+  const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19,attribution:'© OpenStreetMap contributors'});
+  const physical=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:17,attribution:'© OpenTopoMap contributors'});
+  const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,attribution:'Tiles © Esri'});
+  street.addTo(map);
+  L.control.layers({'Street / GPS':street,'Physical / Terrain':physical,'Satellite':satellite},{},{collapsed:false,position:'topright'}).addTo(map);
+
   map.fitBounds(PILOT_BOUNDS,{padding:[0,0],animate:false});
   map.setMinZoom(map.getZoom());
   map.setMaxBounds(PILOT_BOUNDS);
