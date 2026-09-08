@@ -14,24 +14,52 @@
   function aluId(row,col){const tenM=Math.floor(row/10)*10+Math.floor(col/10),oneM=(row%10)*10+(col%10);return [ROOT,TOKENS[PARENT_PATH[0]],TOKENS[PARENT_PATH[1]],TOKENS[tenM],TOKENS[oneM]].join('-')}
   const cells=[];for(let row=0;row<100;row++)for(let col=0;col<100;col++){const available=stableAvailable(row,col);cells.push({row,col,alu_id:aluId(row,col),available_fields:available,total_fields:21,status:classify(available)})}const cellById=new Map(cells.map(c=>[c.alu_id,c]));
   function resizeCanvas(){const size=map.getSize(),d=Math.min(devicePixelRatio||1,2),w=Math.max(1,Math.floor(size.x)),h=Math.max(1,Math.floor(size.y));if(canvas.width!==Math.floor(w*d)||canvas.height!==Math.floor(h*d)){canvas.width=Math.floor(w*d);canvas.height=Math.floor(h*d)}canvas.style.width=`${w}px`;canvas.style.height=`${h}px`;ctx.setTransform(d,0,0,d,0,0);return size}
-  function draw(){const size=resizeCanvas();ctx.clearRect(0,0,size.x,size.y);const sw=map.latLngToContainerPoint(L.latLng(PILOT_BOUNDS[0][0],PILOT_BOUNDS[0][1])),ne=map.latLngToContainerPoint(L.latLng(PILOT_BOUNDS[1][0],PILOT_BOUNDS[1][1])),width=ne.x-sw.x,height=sw.y-ne.y;if(width<=0||height<=0)return;const cw=width/100,ch=height/100;if(cw>=2){
-      // Keep ALU boundaries visible but subordinate to the real basemap.
-      // A very light dashed grid avoids a heavy "graph paper" effect, while
-      // the pilot extent gets a slightly clearer frame for geographic context.
-      ctx.save();
-      ctx.strokeStyle='rgba(71,85,105,.095)';
-      ctx.lineWidth=.55;
-      ctx.setLineDash([2,3]);
-      ctx.beginPath();
-      for(let i=1;i<100;i++){const x=sw.x+i*cw;ctx.moveTo(x,ne.y);ctx.lineTo(x,sw.y)}
-      for(let i=1;i<100;i++){const y=ne.y+i*ch;ctx.moveTo(sw.x,y);ctx.lineTo(ne.x,y)}
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.strokeStyle='rgba(71,85,105,.22)';
-      ctx.lineWidth=.85;
-      ctx.strokeRect(sw.x,ne.y,width,height);
-      ctx.restore();
-    }}
+  function draw(){
+    const size=resizeCanvas();
+    ctx.clearRect(0,0,size.x,size.y);
+    const sw=map.latLngToContainerPoint(L.latLng(PILOT_BOUNDS[0][0],PILOT_BOUNDS[0][1]));
+    const ne=map.latLngToContainerPoint(L.latLng(PILOT_BOUNDS[1][0],PILOT_BOUNDS[1][1]));
+    const width=ne.x-sw.x,height=sw.y-ne.y;
+    if(width<=0||height<=0)return;
+    const cw=width/100,ch=height/100;
+    if(cw<2)return;
+
+    // ALU grid: visible enough to read the spatial structure, but transparent
+    // enough that roads, buildings and map labels remain the dominant layer.
+    ctx.save();
+    ctx.lineCap='butt';
+    ctx.setLineDash([]);
+
+    // Minor 1 m² cell boundaries.
+    ctx.strokeStyle='rgba(71,85,105,.14)';
+    ctx.lineWidth=.65;
+    ctx.beginPath();
+    for(let i=1;i<100;i++){
+      if(i%10===0)continue;
+      const x=sw.x+i*cw;ctx.moveTo(x,ne.y);ctx.lineTo(x,sw.y);
+    }
+    for(let i=1;i<100;i++){
+      if(i%10===0)continue;
+      const y=ne.y+i*ch;ctx.moveTo(sw.x,y);ctx.lineTo(ne.x,y);
+    }
+    ctx.stroke();
+
+    // Every 10th line gives the hierarchy a subtle visual rhythm.
+    ctx.strokeStyle='rgba(71,85,105,.20)';
+    ctx.lineWidth=.75;
+    ctx.beginPath();
+    for(let i=10;i<100;i+=10){
+      const x=sw.x+i*cw;ctx.moveTo(x,ne.y);ctx.lineTo(x,sw.y);
+      const y=ne.y+i*ch;ctx.moveTo(sw.x,y);ctx.lineTo(ne.x,y);
+    }
+    ctx.stroke();
+
+    // Clean pilot extent border, slightly stronger than internal cell lines.
+    ctx.strokeStyle='rgba(71,85,105,.30)';
+    ctx.lineWidth=1;
+    ctx.strokeRect(sw.x,ne.y,width,height);
+    ctx.restore();
+  }
   let raf=0;function scheduleDraw(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;draw()})}map.on('move zoom resize',scheduleDraw);window.addEventListener('resize',scheduleDraw,{passive:true});
   function cellAt(latlng){if(latlng.lat<PILOT_BOUNDS[0][0]||latlng.lat>PILOT_BOUNDS[1][0]||latlng.lng<PILOT_BOUNDS[0][1]||latlng.lng>PILOT_BOUNDS[1][1])return null;const row=Math.max(0,Math.min(99,Math.floor((latlng.lat-PILOT_BOUNDS[0][0])/(PILOT_BOUNDS[1][0]-PILOT_BOUNDS[0][0])*100))),col=Math.max(0,Math.min(99,Math.floor((latlng.lng-PILOT_BOUNDS[0][1])/(PILOT_BOUNDS[1][1]-PILOT_BOUNDS[0][1])*100)));return cells[row*100+col]||null}
   function esc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
