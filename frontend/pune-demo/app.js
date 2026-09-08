@@ -20,9 +20,19 @@
     WHITE: { cls: 'white', color: '#ffffff', label: 'White — not searched / controversial boundary' }
   };
 
-  const map = L.map('map', { zoomControl: true, minZoom: 15, maxZoom: 22, center: [18.507611, 73.807829], zoom: 20 });
+  const map = L.map('map', {
+    zoomControl: true,
+    minZoom: 15,
+    maxZoom: 22,
+    maxBounds: PILOT_BOUNDS,
+    maxBoundsViscosity: 1,
+    center: [18.507611, 73.807829],
+    zoom: 20
+  });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, attribution: '© OpenStreetMap contributors' }).addTo(map);
   map.fitBounds(PILOT_BOUNDS, { padding: [40, 40], animate: false });
+  map.setMinZoom(map.getZoom());
+  map.setMaxBounds(PILOT_BOUNDS);
 
   const searchControl = L.control({ position: 'topleft' });
   searchControl.onAdd = () => {
@@ -97,13 +107,13 @@
       const x = sw.x + cell.col * cw, y = ne.y + cell.row * ch;
       if (x > size.x || y > size.y || x + cw < 0 || y + ch < 0) continue;
       const meta = STATUS[cell.status];
-      ctx.globalAlpha = .66;
+      ctx.globalAlpha = .38;
       ctx.fillStyle = meta.color;
       ctx.fillRect(x, y, Math.max(1, cw + .2), Math.max(1, ch + .2));
     }
     ctx.globalAlpha = 1;
     if (cw >= 3) {
-      ctx.strokeStyle = 'rgba(30,41,59,.35)'; ctx.lineWidth = .45; ctx.beginPath();
+      ctx.strokeStyle = 'rgba(30,41,59,.18)'; ctx.lineWidth = .45; ctx.beginPath();
       for (let i = 0; i <= 100; i++) { const x = sw.x + i * cw; ctx.moveTo(x, ne.y); ctx.lineTo(x, sw.y); }
       for (let i = 0; i <= 100; i++) { const y = ne.y + i * ch; ctx.moveTo(sw.x, y); ctx.lineTo(ne.x, y); }
       ctx.stroke();
@@ -166,13 +176,11 @@
     if (!cell) { hint.textContent = 'ALU not found in the 10,000-cell Pune pilot catalog.'; return; }
     const lat = PILOT_BOUNDS[0][0] + (PILOT_BOUNDS[1][0] - PILOT_BOUNDS[0][0]) * (cell.row + .5) / 100;
     const lng = PILOT_BOUNDS[0][1] + (PILOT_BOUNDS[1][1] - PILOT_BOUNDS[0][1]) * (cell.col + .5) / 100;
-    map.setView([lat, lng], 22, { animate: true });
+    map.setView([lat, lng], Math.min(22, Math.max(map.getMinZoom(), 22)), { animate: true });
     hint.textContent = `${cell.alu_id} · ${STATUS[cell.status].label}`;
     showDetails(cell.alu_id);
   });
 
-  // The 10,000-cell visual loads immediately without waiting for the API.
-  // The API then replaces the provisional colors with its exact 21-field classification.
   scheduleDraw();
   fetch(API + '/api/v1/pune-demo/alu-catalog/coverage-grid?level=1m2', { cache: 'force-cache' })
     .then(r => r.ok ? r.json() : null).then(data => {
