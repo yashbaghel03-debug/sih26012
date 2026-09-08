@@ -2,7 +2,7 @@
 from __future__ import annotations
 from functools import lru_cache
 from typing import Any
-from .alu_catalog import cell_details, list_cells, pilot_parent, _one_m_cell, STATUS_LABELS as _ALU_STATUS_LABELS if False else None
+from .alu_catalog import cell_details, list_cells, pilot_parent, _one_m_cell
 
 STATUS_LABELS = {
     "GREEN": "Green — 19–21 of 21 fields available",
