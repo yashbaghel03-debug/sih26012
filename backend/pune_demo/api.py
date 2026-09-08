@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from .store import SOURCES, attach_geometry, get_all_information, get_alu_link, get_parcel, get_records, list_parcels, seed_demo, get_conn
+from .alu_catalog import catalog_stats, list_cells, seed_catalog
 
 router=APIRouter(prefix='/api/v1/pune-demo',tags=['Pune Demo Portals'])
 
@@ -21,13 +22,16 @@ def records_response(pid,cat):
 def health():
     try:
         with get_conn() as conn:
-            return {'status':'ok','database':'PostgreSQL/PostGIS','pilot':'Kothrud / Kothrud-South, Pune','demo':True,'seed':seed_demo(conn,False)}
+            return {'status':'ok','database':'PostgreSQL/PostGIS','pilot':'Kothrud / Kothrud-South, Pune','demo':True,'seed':seed_demo(conn,False),'alu':seed_catalog(conn,False)}
     except Exception as exc: return {'status':'degraded','database':'unavailable','pilot':'Kothrud / Kothrud-South, Pune','demo':True,'error':str(exc)}
 
 @router.post('/seed')
 def seed(reset: bool=False):
     try:
-        with get_conn() as conn:return seed_demo(conn,reset)
+        with get_conn() as conn:
+            parcel_result=seed_demo(conn,reset)
+            alu_result=seed_catalog(conn,reset)
+            return {'parcels':parcel_result,'alu':alu_result}
     except Exception as exc: raise HTTPException(503,f'PostGIS unavailable: {exc}')
 
 @router.get('/search')
@@ -65,6 +69,21 @@ def alu_for_parcel(parcel_id:str):
     if not get_parcel(parcel_id): raise HTTPException(404,'Parcel not found')
     link=get_alu_link(parcel_id)
     return {'parcel_id':parcel_id,'alu':link['alu_id'],'level':'1m2','status':'AVAILABLE'} if link else {'parcel_id':parcel_id,'alu':None,'status':'N/D','message':'ALU linkage is withheld until authorized cadastral geometry is available.'}
+
+@router.get('/alu-catalog')
+def alu_catalog():
+    try:
+        with get_conn() as conn:
+            return catalog_stats(conn)
+    except Exception as exc: raise HTTPException(503,f'ALU catalog unavailable: {exc}')
+
+@router.get('/alu-catalog/cells')
+def alu_catalog_cells(level:str='1m2',limit:int=Query(10000,ge=1,le=100000),offset:int=Query(0,ge=0)):
+    try:
+        with get_conn() as conn:
+            return list_cells(conn,level,limit,offset)
+    except ValueError as exc: raise HTTPException(400,str(exc))
+    except Exception as exc: raise HTTPException(503,f'ALU catalog unavailable: {exc}')
 
 @router.get('/parcels/{parcel_id}/land-records')
 def land_records(parcel_id:str): return records_response(parcel_id,'land_records')
