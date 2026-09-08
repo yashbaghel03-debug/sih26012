@@ -1,0 +1,2 @@
+import {mountPortal} from '../common.js';
+mountPortal({service:'utilities_infrastructure',title:'Pune Utilities & Infrastructure — DEMO',subtitle:'Utility availability, road, drainage, sewerage and right-of-way reference service',searchTitle:'Infrastructure Search',fields:[{key:'area',label:'Locality / Area',placeholder:'Kothrud'},{key:'survey',label:'Survey / Plot No.',placeholder:'D-68/1'},{key:'property',label:'Property ID',placeholder:'DEMOUID00000001'},{key:'service',label:'Utility / Network',placeholder:'Water / Road / Sewerage'}]});
