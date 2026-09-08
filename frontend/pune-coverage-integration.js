@@ -1,7 +1,7 @@
 /* Pune pilot integration layer.
- * Loaded before the India map renderer and captures the Leaflet map instance.
- * The national map stays unchanged at normal zooms; the prepared Pune ALU
- * coverage appears only when the user zooms into the pilot area.
+ * Loaded before the India map renderer. The national map remains unchanged at
+ * normal zooms; the prepared Pune ALU coverage appears when the user zooms
+ * into the pilot area.
  */
 (() => {
   'use strict';
@@ -15,7 +15,7 @@
     return 'http://localhost:8000';
   })();
 
-  const PILOT = { center: [18.5074, 73.8077], zoomReveal: 12, gridReveal: 18 };
+  const PILOT = { center: [18.5074, 73.8077], zoomReveal: 12, gridReveal: 16 };
   const STATUS = { GREEN:'#22c55e', YELLOW:'#facc15', RED:'#ef4444', WHITE:'#ffffff' };
   const parentBoundsFallback = [[18.5069,73.8072],[18.5079,73.8082]];
 
@@ -26,7 +26,8 @@
   function nearPilot() {
     if (!activeMap) return false;
     const b = activeMap.getBounds(), pad = 0.18;
-    return b.getNorth() >= PILOT.center[0]-pad && b.getSouth() <= PILOT.center[0]+pad && b.getEast() >= PILOT.center[1]-pad && b.getWest() <= PILOT.center[1+0];
+    return b.getNorth() >= PILOT.center[0]-pad && b.getSouth() <= PILOT.center[0]+pad &&
+           b.getEast() >= PILOT.center[1]-pad && b.getWest() <= PILOT.center[1]+pad;
   }
   async function getJson(path) {
     const r = await fetch(API + path, { headers:{Accept:'application/json'}, cache:'force-cache' });
@@ -92,7 +93,7 @@
       e.preventDefault();e.stopPropagation();
       const target=new URL('pune-demo/',location.href);target.searchParams.set('alu',alu);target.searchParams.set('from','india-map');window.location.href=target.href;
     },true);
-    setTimeout(loadCoverage,800);
+    setTimeout(loadCoverage,600);
   }
   const originalMap=L.map;
   L.map=function(...args){const map=originalMap.apply(this,args);setTimeout(()=>setupMap(map),0);return map;};
