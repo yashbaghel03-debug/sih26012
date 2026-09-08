@@ -15,6 +15,7 @@ from ..retrieval_engine.engine_v2 import retrieve_parcel
 from ..retrieval_engine.normalizer import to_standard_schema
 from ..retrieval_engine.rounds import RoundCell, RoundProcessor
 from ..spatial_indexing.lattice import LEVEL_ORDER, LEVEL_SPECS, Cell, ancestor_1km, cell_from_id, children
+from ..pune_demo.api import router as pune_demo_router
 
 MOCK_PORTAL_URL = os.environ.get("MOCK_PORTAL_URL", "http://localhost:8001")
 POSTGIS_DSN = os.environ.get("POSTGIS_DSN", "dbname=sih26012 user=sih password=sih host=localhost port=5432")
@@ -26,8 +27,9 @@ FALLBACK_INDIA_BOUNDARY_URL = os.environ.get(
     "FALLBACK_INDIA_BOUNDARY_URL",
     "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson",
 )
-app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.2.0", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS.")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:5173"], allow_credentials=True, allow_methods=["GET", "POST"], allow_headers=["*"])
+app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.3.0", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS and Pune mock-government integration.")
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"], allow_credentials=True, allow_methods=["GET", "POST", "PUT"], allow_headers=["*"])
+app.include_router(pune_demo_router)
 
 @lru_cache(maxsize=64)
 def _assignment(parcel_id):
