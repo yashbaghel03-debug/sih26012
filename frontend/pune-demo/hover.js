@@ -25,7 +25,7 @@
   function getCell(lat, lng) {
     if (lat < PILOT_BOUNDS[0][0] || lat > PILOT_BOUNDS[1][0] || lng < PILOT_BOUNDS[0][1] || lng > PILOT_BOUNDS[1][1]) return null;
     const row = Math.max(0, Math.min(99, Math.floor((lat - PILOT_BOUNDS[0][0]) / (PILOT_BOUNDS[1][0] - PILOT_BOUNDS[0][0]) * 100)));
-    const col = Math.max(0, Math.min(99, Math.floor((lng - PILOT_BOUNDS[0][1]) / (PILOT_BOUNDS[1][1] - PILOT_BOUNDS[1][1] + (PILOT_BOUNDS[1][1] - PILOT_BOUNDS[0][1])) * 100)));
+    const col = Math.max(0, Math.min(99, Math.floor((lng - PILOT_BOUNDS[0][1]) / (PILOT_BOUNDS[1][1] - PILOT_BOUNDS[0][1]) * 100)));
     return { row, col, alu: makeAlu(row, col) };
   }
 
@@ -45,31 +45,40 @@
     let requestId = 0;
 
     function position(e) {
-      tooltip.style.left = `${e.clientX + 14}px`;
-      tooltip.style.top = `${e.clientY + 14}px`;
+      const pad = 12;
+      const maxX = window.innerWidth - tooltip.offsetWidth - pad;
+      const maxY = window.innerHeight - tooltip.offsetHeight - pad;
+      tooltip.style.left = `${Math.min(e.clientX + 14, Math.max(pad, maxX))}px`;
+      tooltip.style.top = `${Math.min(e.clientY + 14, Math.max(pad, maxY))}px`;
     }
 
     async function update(cell, e) {
       if (!cell) {
         tooltip.style.display = 'none';
         lastAlu = null;
+        requestId++;
         return;
       }
       position(e);
       tooltip.style.display = 'block';
-      tooltip.innerHTML = `<div class="pune-hover-title">ALU ID</div><strong>${escapeHtml(cell.alu)}</strong><div class="pune-hover-row"><span>ULPIN</span><b>Loading…</b></div>`;
-      if (cell.alu === lastAlu) return;
-      lastAlu = cell.alu;
-      const id = ++requestId;
-      try {
-        const r = await fetch(`${API}/api/v1/pune-demo/alu-catalog/cells/${encodeURIComponent(cell.alu)}/details`, { cache: 'force-cache' });
-        if (id !== requestId || cell.alu !== lastAlu) return;
-        if (!r.ok) throw new Error('unavailable');
-        const detail = await r.json();
-        tooltip.innerHTML = `<div class="pune-hover-title">ALU ID</div><strong>${escapeHtml(detail.alu)}</strong><div class="pune-hover-row"><span>ULPIN</span><b>${escapeHtml(detail.ulpin)}</b></div><div class="pune-hover-row"><span>Coverage</span><b>${escapeHtml(detail.available_fields ?? 0)}/21 fields</b></div>`;
-      } catch (_) {
-        if (id !== requestId || cell.alu !== lastAlu) return;
-        tooltip.innerHTML = `<div class="pune-hover-title">ALU ID</div><strong>${escapeHtml(cell.alu)}</strong><div class="pune-hover-row"><span>ULPIN</span><b>N/D — not imported</b></div>`;
+      if (cell.alu !== lastAlu) {
+        lastAlu = cell.alu;
+        const id = ++requestId;
+        tooltip.innerHTML = `<div class="pune-hover-title">ALU ID</div><strong>${escapeHtml(cell.alu)}</strong><div class="pune-hover-row"><span>ULPIN</span><b>Loading…</b></div>`;
+        try {
+          const r = await fetch(`${API}/api/v1/pune-demo/alu-catalog/cells/${encodeURIComponent(cell.alu)}/details`, { cache: 'force-cache' });
+          if (id !== requestId || cell.alu !== lastAlu) return;
+          if (!r.ok) throw new Error('unavailable');
+          const detail = await r.json();
+          tooltip.innerHTML = `<div class="pune-hover-title">ALU ID</div><strong>${escapeHtml(detail.alu)}</strong><div class="pune-hover-row"><span>ULPIN</span><b>${escapeHtml(detail.ulpin)}</b></div><div class="pune-hover-row"><span>Coverage</span><b>${escapeHtml(detail.available_fields ?? 0)}/21 fields</b></div>`;
+          position(e);
+        } catch (_) {
+          if (id !== requestId || cell.alu !== lastAlu) return;
+          tooltip.innerHTML = `<div class="pune-hover-title">ALU ID</div><strong>${escapeHtml(cell.alu)}</strong><div class="pune-hover-row"><span>ULPIN</span><b>N/D — not imported</b></div>`;
+          position(e);
+        }
+      } else {
+        position(e);
       }
     }
 
@@ -77,7 +86,7 @@
       const rect = map.getContainer().getBoundingClientRect();
       const point = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
       update(getCell(point.lat, point.lng), e);
-    });
+    }, { passive: true });
     map.getContainer().addEventListener('mouseleave', () => { tooltip.style.display = 'none'; lastAlu = null; requestId++; });
   }
 
