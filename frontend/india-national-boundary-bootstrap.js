@@ -27,17 +27,17 @@
 
   function loadMap() {
     const integration = document.createElement('script');
-    integration.src = 'pune-coverage-integration.js?v=20260909b';
+    integration.src = 'pune-coverage-integration.js?v=20260909c';
     integration.defer = false;
     integration.onload = () => {
       const script = document.createElement('script');
-      script.src = 'map.js?v=20260909l';
+      script.src = 'map.js?v=20260909m';
       script.defer = false;
       document.body.appendChild(script);
     };
     integration.onerror = () => {
       const script = document.createElement('script');
-      script.src = 'map.js?v=20260909l';
+      script.src = 'map.js?v=20260909m';
       script.defer = false;
       document.body.appendChild(script);
     };
