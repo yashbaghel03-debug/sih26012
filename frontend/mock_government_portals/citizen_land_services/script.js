@@ -1,0 +1,2 @@
+import {mountPortal,api,esc} from '../common.js';
+mountPortal({service:'citizen_land_services',title:'Citizen Land Information Service — DEMO',subtitle:'Integrated parcel view across land records, registration, planning, tax, utilities and legal sources',searchTitle:'Integrated Parcel Search',fields:[{key:'id',label:'ALU / Parcel ID / Property ID',placeholder:'PUNE-KOT-DEMO-001'},{key:'land',label:'ULPIN / Survey / Gat',placeholder:'ULPIN N/D or D-68/1'},{key:'cts',label:'CTS No.',placeholder:'K-D0200'},{key:'location',label:'Location',placeholder:'Kothrud, Pune'}]});
