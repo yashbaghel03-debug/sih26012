@@ -184,6 +184,10 @@ class Cell:
         return px1 + ox, py1 + oy, px1 + ox + side, py1 + oy + side
 
 
+def cell_id(cell: Cell) -> str:
+    return cell.id
+
+
 def cell_from_id(value: str) -> Cell:
     parts = value.strip().upper().split("-")
     if not parts or len(parts[0]) != 6:

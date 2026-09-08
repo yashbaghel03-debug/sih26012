@@ -25,3 +25,8 @@ def test_hierarchical_alu():
     parsed=cell_from_id(fine[0].id)
     assert parsed==fine[0]
     assert root_indices_to_code(1001,1573)==root.id
+
+
+def test_india_boundary_fallback_configured():
+    from backend.api.main import FALLBACK_INDIA_BOUNDARY_URL
+    assert FALLBACK_INDIA_BOUNDARY_URL.startswith('http')
