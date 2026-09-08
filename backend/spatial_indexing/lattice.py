@@ -23,18 +23,17 @@ BASE36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 DIGITS = "0123456789"
 
-LEVEL_ORDER = ("100km2", "1km2", "0.01km2", "0.0001km2", "0.000001km2", "0.1m2")
+LEVEL_ORDER = ("100km2", "1km2", "0.01km2", "0.0001km2", "1m2", "0.1m2")
 LEVEL_SPECS = {
     "100km2": {"side_m": 10_000.0, "children": 100, "kind": "square10x10"},
     "1km2": {"side_m": 1_000.0, "children": 100, "kind": "square10x10"},
     "0.01km2": {"side_m": 100.0, "children": 100, "kind": "square10x10"},
     "0.0001km2": {"side_m": 10.0, "children": 100, "kind": "square10x10"},
-    "0.000001km2": {"side_m": 1.0, "children": 10, "kind": "terminal10"},
+    "1m2": {"side_m": 1.0, "children": 10, "kind": "terminal10"},
     "0.1m2": {"side_m": sqrt(0.1), "children": 0, "kind": "terminal"},
 }
 
-# Root cells are 10 km x 10 km. This keeps the initial logical coverage
-# roughly 1/100 of the former 1 km root count.
+# Root cells are 10 km x 10 km.
 ROOT_ORIGIN_X = 7_570_000.0
 ROOT_ORIGIN_Y = 700_000.0
 ROOT_COLS = 400
@@ -177,7 +176,7 @@ class Cell:
             ox, oy = self.local_root_offset
             side = self.width_m
             return root_x + ox, root_y + oy, root_x + ox + side, root_y + oy + side
-        parent = Cell("0.000001km2", self.root_ix, self.root_iy, self.path[:-1])
+        parent = Cell("1m2", self.root_ix, self.root_iy, self.path[:-1])
         px1, py1, _, _ = parent.mercator_bounds
         ox, oy = TERMINAL_PLACEMENTS[self.path[-1]]
         side = sqrt(0.1)
