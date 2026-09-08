@@ -1,0 +1,2 @@
+import {mountPortal} from '../common.js';
+mountPortal({service:'planning_building',title:'Pune Planning & Building — DEMO',subtitle:'Building proposal, land-use and GIS workflow reference',searchTitle:'Proposal / Property Search',fields:[{key:'proposal',label:'Application / Proposal No.',placeholder:'DEMO/PMC/BP/2026/0101'},{key:'property',label:'Property ID',placeholder:'DEMOUID00000001'},{key:'survey',label:'Survey / Plot No.',placeholder:'D-68/1'},{key:'location',label:'Village / Locality',placeholder:'Kothrud'}]});
