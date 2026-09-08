@@ -7,7 +7,10 @@
   const STATUS={GREEN:{cls:'green',label:'Green — 19–21 / 21 fields',color:'#22c55e'},YELLOW:{cls:'yellow',label:'Yellow — 15–18 / 21 fields',color:'#facc15'},RED:{cls:'red',label:'Red — fewer than 15 / 21 fields',color:'#ef4444'},WHITE:{cls:'white',label:'White — not searched / controversial boundary',color:'#ffffff'}};
   const map=L.map('map',{zoomControl:true,minZoom:18,maxZoom:22,maxBounds:PILOT_BOUNDS,maxBoundsViscosity:1,center:KOTHRUD_CENTER,zoom:20});
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,attribution:'© OpenStreetMap contributors'}).addTo(map);
-  map.fitBounds(PILOT_BOUNDS,{padding:[16,16],animate:false});map.setMinZoom(map.getZoom());map.setMaxBounds(PILOT_BOUNDS);
+  // Fit exactly to the prepared Pune pilot data square: no extra geographic padding.
+  map.fitBounds(PILOT_BOUNDS,{padding:[0,0],animate:false});
+  map.setMinZoom(map.getZoom());
+  map.setMaxBounds(PILOT_BOUNDS);
   const canvas=L.DomUtil.create('canvas','pune-coverage-canvas');canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:445;pointer-events:auto';map.getPane('overlayPane').appendChild(canvas);const ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});
   function stableAvailable(row,col){const v=(row*37+col*17+row*col*3)%100;if(v<55)return 19+((row+col)%3);if(v<82)return 15+((row*3+col)%4);return 8+((row*5+col*7)%7)}
   function classify(n){return n>=19?'GREEN':n>=15?'YELLOW':'RED'}
