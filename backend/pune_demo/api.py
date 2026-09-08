@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from .store import SOURCES, attach_geometry, get_all_information, get_alu_link, get_parcel, get_records, list_parcels, seed_demo, get_conn
 from .alu_catalog import catalog_stats, list_cells, seed_catalog
-from .coverage import classify_alu, coverage_cells, STATUS_LABELS
+from .coverage import classify_alu, coverage_cells, compact_coverage_grid, STATUS_LABELS
 
 router=APIRouter(prefix='/api/v1/pune-demo',tags=['Pune Demo Portals'])
 
@@ -95,6 +95,13 @@ def alu_coverage_cells(level:str='1m2',limit:int=Query(10000,ge=1,le=10000),offs
         with get_conn() as conn:return coverage_cells(conn,level,limit,offset)
     except ValueError as exc: raise HTTPException(400,str(exc))
     except Exception as exc: raise HTTPException(503,f'ALU coverage catalog unavailable: {exc}')
+
+@router.get('/alu-catalog/coverage-grid')
+def alu_coverage_grid(level:str='1m2'):
+    try:
+        return compact_coverage_grid(level)
+    except ValueError as exc: raise HTTPException(400,str(exc))
+    except Exception as exc: raise HTTPException(503,f'ALU coverage grid unavailable: {exc}')
 
 @router.get('/alu-catalog/cells/{alu_id}/details')
 def alu_catalog_cell_details(alu_id: str):
