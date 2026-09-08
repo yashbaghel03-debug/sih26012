@@ -3,7 +3,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from .store import SOURCES, attach_geometry, get_all_information, get_alu_link, get_parcel, get_records, list_parcels, seed_demo, get_conn
-from .alu_catalog import catalog_stats, list_cells, seed_catalog, cell_details
+from .alu_catalog import catalog_stats, list_cells, seed_catalog
+from .coverage import classify_alu, coverage_cells, STATUS_LABELS
 
 router=APIRouter(prefix='/api/v1/pune-demo',tags=['Pune Demo Portals'])
 
@@ -74,21 +75,31 @@ def alu_for_parcel(parcel_id:str):
 def alu_catalog():
     try:
         with get_conn() as conn:
-            return catalog_stats(conn)
+            meta=catalog_stats(conn)
+            meta['coverage_status_labels']=STATUS_LABELS
+            meta['coverage_rule']='GREEN=19-21 non-N/D/non-N/A fields; YELLOW=15-18; RED=0-14; WHITE=not searched due to controversial boundary'
+            meta['white_cells']=0
+            return meta
     except Exception as exc: raise HTTPException(503,f'ALU catalog unavailable: {exc}')
 
 @router.get('/alu-catalog/cells')
 def alu_catalog_cells(level:str='1m2',limit:int=Query(10000,ge=1,le=100000),offset:int=Query(0,ge=0)):
     try:
-        with get_conn() as conn:
-            return list_cells(conn,level,limit,offset)
+        with get_conn() as conn:return list_cells(conn,level,limit,offset)
     except ValueError as exc: raise HTTPException(400,str(exc))
     except Exception as exc: raise HTTPException(503,f'ALU catalog unavailable: {exc}')
+
+@router.get('/alu-catalog/coverage-cells')
+def alu_coverage_cells(level:str='1m2',limit:int=Query(10000,ge=1,le=10000),offset:int=Query(0,ge=0)):
+    try:
+        with get_conn() as conn:return coverage_cells(conn,level,limit,offset)
+    except ValueError as exc: raise HTTPException(400,str(exc))
+    except Exception as exc: raise HTTPException(503,f'ALU coverage catalog unavailable: {exc}')
 
 @router.get('/alu-catalog/cells/{alu_id}/details')
 def alu_catalog_cell_details(alu_id: str):
     try:
-        return cell_details(alu_id)
+        return classify_alu(alu_id)
     except ValueError as exc:
         raise HTTPException(400,str(exc))
 
