@@ -22,3 +22,6 @@ dependencies = [
 
 [tool.vercel]
 entrypoint = "backend.api.main:app"
+
+[tool.setuptools.packages.find]
+include = ["backend*"]
