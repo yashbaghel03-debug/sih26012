@@ -20,7 +20,13 @@ from ..spatial_indexing.lattice import LEVEL_ORDER, LEVEL_SPECS, Cell, ancestor_
 from ..pune_demo.api import router as pune_demo_router
 
 MOCK_PORTAL_URL = os.environ.get("MOCK_PORTAL_URL", "http://localhost:8001")
-POSTGIS_DSN = os.environ.get("POSTGIS_DSN", "dbname=sih26012 user=sih password=sih host=localhost port=5432")
+# Local development keeps the Docker/PostGIS default. Vercel intentionally does not
+# try localhost:5432 because serverless functions do not share the developer's DB.
+POSTGIS_DSN = (
+    os.environ.get("POSTGIS_DSN")
+    or os.environ.get("DATABASE_URL")
+    or ("" if os.environ.get("VERCEL") else "dbname=sih26012 user=sih password=sih host=localhost port=5432")
+)
 OFFICIAL_INDIA_BOUNDARY_QUERY = os.environ.get("OFFICIAL_INDIA_BOUNDARY_QUERY", "https://mapservice.gov.in/mapserviceserv176/rest/services/India_Boundary/MapServer/0/query")
 FALLBACK_INDIA_BOUNDARY_URL = os.environ.get("FALLBACK_INDIA_BOUNDARY_URL", "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson")
 app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.3.1", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS and Pune mock-government integration.")
@@ -35,19 +41,27 @@ def _assignment(parcel_id):
     return retrieve_parcel(parcel_id, base_url=MOCK_PORTAL_URL, parcel_type=parcel.get("land_type"))
 
 def db():
-    return psycopg2.connect(POSTGIS_DSN)
+    if not POSTGIS_DSN:
+        raise RuntimeError("PostGIS is not configured for this deployment")
+    return psycopg2.connect(POSTGIS_DSN, connect_timeout=5)
 
 @app.get("/health", tags=["System"])
 def health():
-    result = {"status": "ok", "service": "SIH Parcel Assignment + WebGIS API", "postgis": "unknown"}
+    result = {"status": "ok", "service": "SIH Parcel Assignment + WebGIS API", "mode": "demo", "postgis": "not_configured"}
+    if not POSTGIS_DSN:
+        result["message"] = "Demo mode is active. Configure POSTGIS_DSN or DATABASE_URL to enable live PostGIS parcel queries."
+        return result
     try:
         with db() as conn, conn.cursor() as cur:
             cur.execute("SELECT PostGIS_Full_Version()")
             result["postgis"] = "ok"
             result["postgis_version"] = cur.fetchone()[0]
+            result["mode"] = "live"
     except Exception as exc:
+        result["status"] = "degraded"
         result["postgis"] = "unavailable"
         result["postgis_error"] = str(exc)
+        result["message"] = "API is online, but the configured PostGIS database is unreachable."
     return result
 
 @app.get("/api/v1/parcels", tags=["Parcels"])
