@@ -12,7 +12,7 @@
     const q = new URLSearchParams(location.search).get('api');
     if (q) return q.replace(/\/$/, '');
     if (location.hostname.endsWith('.app.github.dev')) return `https://${location.hostname.replace(/-\d+\.app\.github\.dev$/, '-8000.app.github.dev')}`;
-    return 'http://localhost:8000';
+    return location.origin;
   })();
 
   const PILOT = { center: [18.5074, 73.8077], zoomReveal: 12, gridReveal: 16 };

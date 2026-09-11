@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const params=new URLSearchParams(location.search);
-const api=params.get('api')||'http://localhost:8000';
+const api=params.get('api')||location.origin;
 const alu=params.get('alu')||'';
 const lat=params.get('lat'),lng=params.get('lng');
 const $=id=>document.getElementById(id);

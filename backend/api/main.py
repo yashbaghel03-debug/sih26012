@@ -6,8 +6,10 @@ import ssl
 import urllib.parse
 import urllib.request
 from functools import lru_cache
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import psycopg2
 from ..mock_gov_portal.fixtures.loader import list_all_parcels, load_parcel
 from ..retrieval_engine.engine import assignment_summary
@@ -128,3 +130,6 @@ def india_boundaries():
 @app.post("/api/v1/rounds/demo", tags=["Rounds"])
 def process_demo_rounds():
     pids=[p["parcel_id"] for p in list_all_parcels()]; processor=RoundProcessor(base_url=MOCK_PORTAL_URL); roots=[Cell("100km2",0,idx,()) for idx in range(len(pids))]; targets={"100km2":[RoundCell(cell,pids[idx]) for idx,cell in enumerate(roots)]}; return {"rounds":[result.to_dict() for result in processor.process_all_levels(targets)]}
+
+frontend_dir = Path(__file__).resolve().parents[2] / "frontend"
+app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")

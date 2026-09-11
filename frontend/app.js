@@ -1,4 +1,4 @@
-const state = { api: 'http://localhost:8000', parcels: [], selected: null };
+const state = { api: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : window.location.origin, parcels: [], selected: null };
 const $ = (id) => document.getElementById(id);
 
 function api(path, options = {}) {

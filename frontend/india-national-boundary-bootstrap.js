@@ -5,7 +5,7 @@
 (() => {
   'use strict';
   const params = new URLSearchParams(location.search);
-  const api = params.get('api') || 'http://localhost:8000';
+  const api = params.get('api') || window.location.origin;
   const apiBoundary = `${api}/api/v1/spatial/india-boundaries`;
   const nationalBoundary = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson';
   const cacheKey = 'sih26012-india-national-boundary-v5';
