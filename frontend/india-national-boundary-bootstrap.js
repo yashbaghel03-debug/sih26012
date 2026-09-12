@@ -31,13 +31,13 @@
     integration.defer = false;
     integration.onload = () => {
       const script = document.createElement('script');
-      script.src = 'map.js?v=20260909m';
+      script.src = 'map.js?v=20260912d';
       script.defer = false;
       document.body.appendChild(script);
     };
     integration.onerror = () => {
       const script = document.createElement('script');
-      script.src = 'map.js?v=20260909m';
+      script.src = 'map.js?v=20260912d';
       script.defer = false;
       document.body.appendChild(script);
     };
