@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
 import psycopg2
 from ..mock_gov_portal.fixtures.loader import list_all_parcels, load_parcel
 from ..retrieval_engine.engine import assignment_summary
@@ -29,9 +30,66 @@ POSTGIS_DSN = (
 )
 OFFICIAL_INDIA_BOUNDARY_QUERY = os.environ.get("OFFICIAL_INDIA_BOUNDARY_QUERY", "https://mapservice.gov.in/mapserviceserv176/rest/services/India_Boundary/MapServer/0/query")
 FALLBACK_INDIA_BOUNDARY_URL = os.environ.get("FALLBACK_INDIA_BOUNDARY_URL", "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson")
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(ENV_FILE)
+
+DEFAULT_SITE_CONFIGS = [
+    {"id": "land_records", "name": "Land Records / RoR", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
+    {"id": "registration", "name": "Property Registration", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
+    {"id": "planning_building", "name": "Planning & Building", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
+    {"id": "property_tax", "name": "Property Tax & Valuation", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
+    {"id": "utilities_infrastructure", "name": "Utilities & Infrastructure", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
+    {"id": "legal_encumbrance", "name": "Legal / Encumbrance", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
+    {"id": "citizen_land_services", "name": "Citizen Land Services", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
+]
+
 app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.3.1", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS and Pune mock-government integration.")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"], allow_origin_regex=r"https://.*\.app\.github\.dev", allow_credentials=True, allow_methods=["GET", "POST", "PUT"], allow_headers=["*"])
 app.include_router(pune_demo_router)
+
+
+def _normalize_site_config(site: dict):
+    if not isinstance(site, dict):
+        raise ValueError("Each site config must be an object")
+    site_id = str(site.get("id", "")).strip()
+    if not site_id:
+        raise ValueError("Each site config requires an id")
+    return {
+        "id": site_id,
+        "name": str(site.get("name", site_id)).strip() or site_id,
+        "base_url": str(site.get("base_url", "http://localhost:8000")).strip() or "http://localhost:8000",
+        "api_key": str(site.get("api_key", "") or ""),
+        "enabled": bool(site.get("enabled", True)),
+    }
+
+
+def _load_site_configs():
+    raw = os.environ.get("GOVT_SITE_CONFIGS")
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                return [_normalize_site_config(site) for site in parsed]
+        except Exception:
+            pass
+    return [dict(site) for site in DEFAULT_SITE_CONFIGS]
+
+
+def _write_site_configs(sites: list[dict]):
+    normalized = [_normalize_site_config(site) for site in sites]
+    os.environ["GOVT_SITE_CONFIGS"] = json.dumps(normalized)
+    if ENV_FILE.exists():
+        content = [
+            f"MOCK_PORTAL_URL={os.environ.get('MOCK_PORTAL_URL', 'http://localhost:8001')}",
+            f"POSTGIS_DSN={os.environ.get('POSTGIS_DSN', 'dbname=sih26012 user=sih password=sih host=localhost port=5432')}",
+            f"OFFICIAL_INDIA_BOUNDARY_QUERY={os.environ.get('OFFICIAL_INDIA_BOUNDARY_QUERY', 'https://mapservice.gov.in/mapserviceserv176/rest/services/India_Boundary/MapServer/0/query')}",
+            f"FALLBACK_INDIA_BOUNDARY_URL={os.environ.get('FALLBACK_INDIA_BOUNDARY_URL', 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson')}",
+            f"PUNE_DEMO_API_KEY={os.environ.get('PUNE_DEMO_API_KEY', '')}",
+            f"GOVT_SITE_CONFIGS={json.dumps(normalized)}",
+        ]
+        ENV_FILE.write_text("\n".join(content) + "\n", encoding="utf-8")
+    return normalized
+
 
 @lru_cache(maxsize=64)
 def _assignment(parcel_id):
@@ -63,6 +121,47 @@ def health():
         result["postgis_error"] = str(exc)
         result["message"] = "API is online, but the configured PostGIS database is unreachable."
     return result
+
+@app.get("/api/v1/admin/site-configs", tags=["Admin"])
+def site_configs():
+    return {"sites": _load_site_configs()}
+
+
+@app.post("/api/v1/admin/site-configs", tags=["Admin"])
+def save_site_configs(payload: dict):
+    sites = payload.get("sites") if isinstance(payload, dict) else None
+    if not isinstance(sites, list):
+        raise HTTPException(400, "Payload must include a sites list")
+    return {"sites": _write_site_configs(sites)}
+
+
+@app.post("/api/v1/admin/site-configs/test", tags=["Admin"])
+def test_site_config(payload: dict):
+    site = _normalize_site_config(payload)
+    url = site["base_url"].rstrip("/") + "/api/v1/parcels"
+    headers = {"Accept": "application/json"}
+    if site.get("api_key"):
+        headers["X-API-Key"] = site["api_key"]
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as response:
+            body = response.read().decode("utf-8")
+            data = json.loads(body) if body else {}
+            return {
+                "site": site["id"],
+                "status": "ok",
+                "http_status": response.status,
+                "reachable": True,
+                "sample": data,
+            }
+    except Exception as exc:
+        return {
+            "site": site["id"],
+            "status": "error",
+            "reachable": False,
+            "error": str(exc),
+        }
+
 
 @app.get("/api/v1/parcels", tags=["Parcels"])
 def parcels(): return {"parcels": list_all_parcels()}

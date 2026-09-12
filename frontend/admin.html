@@ -10,6 +10,17 @@
   <header class="topbar"><div><div class="eyebrow">SIH 2026 · Problem Statement 26012</div><h1>Parcel Assignment & WebGIS Admin</h1><p>21-category government-data retrieval, spatial assignment and PostGIS-backed geographic visualization.</p></div><div class="health" id="healthBadge">Checking API…</div></header>
   <main class="container">
     <section class="hero-grid"><div class="panel api-panel"><div class="section-title"><span>API Connection</span><span class="dot" id="apiDot"></span></div><div class="api-row"><input id="apiBase" value="" aria-label="API base URL" /><button id="connectBtn">Connect</button></div><small id="apiMessage">Frontend calls the FastAPI endpoints.</small></div><div class="panel stat-card"><span>Parcels</span><strong id="parcelCount">—</strong><small>Demo assignment fixtures</small></div><div class="panel stat-card"><span>Categories</span><strong>21</strong><small>Registry-driven</small></div><div class="panel stat-card"><span>Spatial levels</span><strong>5</strong><small>1km² → 0.1m²</small></div></section>
+    <section class="panel settings-panel">
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">Admin settings</div>
+          <h2>External site management</h2>
+        </div>
+        <button id="saveSettingsBtn" class="primary">Save all settings</button>
+      </div>
+      <p class="muted">Manage the seven demo websites, update their base URLs or API keys, and fetch live data from any configured site directly from this dashboard.</p>
+      <div id="siteConfigGrid" class="site-config-grid"><div class="loading">Loading site configuration…</div></div>
+    </section>
     <section class="panel map-launch"><div><div class="eyebrow">Public geographic view</div><h2>India WebGIS</h2><p class="muted">Return to the visitor map with India-clipped independent cells and hierarchical ALU search.</p></div><a class="primary" href="index.html">Open India WebGIS →</a></section>
     <section class="panel"><div class="section-heading"><div><div class="eyebrow">Assignment Engine</div><h2>Choose a parcel</h2></div><span class="muted" id="selectedLabel">No parcel selected</span></div><div id="parcelGrid" class="parcel-grid"><div class="loading">Loading parcels…</div></div></section>
     <section id="parcelDetails" class="dashboard-grid hidden"><div class="panel details-panel"><div class="section-heading"><div><div class="eyebrow">Parcel details</div><h2 id="parcelTitle">—</h2></div><span id="gradeBadge" class="grade">—</span></div><div class="details-list" id="parcelMeta"></div></div><div class="panel score-panel"><div class="eyebrow">Usable category score</div><div class="score"><span id="scoreValue">—</span><span>/21</span></div><div class="score-track"><div id="scoreFill"></div></div><div class="score-stats"><div><strong id="usableCount">—</strong><span>usable</span></div><div><strong id="naCount">—</strong><span>N/A</span></div><div><strong id="ndCount">—</strong><span>N/D</span></div></div></div></section>

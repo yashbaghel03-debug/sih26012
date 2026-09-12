@@ -1,4 +1,4 @@
-const state = { api: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : window.location.origin, parcels: [], selected: null };
+const state = { api: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : window.location.origin, parcels: [], selected: null, sites: [] };
 const $ = (id) => document.getElementById(id);
 
 function api(path, options = {}) {
@@ -38,6 +38,119 @@ function renderParcels() {
       <div class="land">${esc(p.land_type)} · ${esc(p.area_sq_m)} m²</div>
     </button>`).join('');
   document.querySelectorAll('.parcel-card').forEach(btn => btn.addEventListener('click', () => selectParcel(btn.dataset.id)));
+}
+
+function renderSiteConfigs() {
+  const grid = $('siteConfigGrid');
+  if (!state.sites.length) {
+    grid.innerHTML = '<div class="empty-state">No external sites configured yet.</div>';
+    return;
+  }
+
+  grid.innerHTML = state.sites.map(site => `
+    <div class="site-config-card ${site.enabled ? 'enabled' : 'disabled'}">
+      <div class="site-card-header">
+        <div>
+          <div class="eyebrow">${esc(site.id)}</div>
+          <h3>${esc(site.name)}</h3>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" data-site-toggle="${esc(site.id)}" ${site.enabled ? 'checked' : ''} />
+          <span>Enabled</span>
+        </label>
+      </div>
+      <div class="site-card-body">
+        <label>
+          <span>Display name</span>
+          <input data-site-field="name" data-site-id="${esc(site.id)}" value="${esc(site.name)}" />
+        </label>
+        <label>
+          <span>Base URL</span>
+          <input data-site-field="base_url" data-site-id="${esc(site.id)}" value="${esc(site.base_url)}" />
+        </label>
+        <label>
+          <span>API key</span>
+          <input data-site-field="api_key" data-site-id="${esc(site.id)}" value="${esc(site.api_key)}" placeholder="Optional API key" />
+        </label>
+      </div>
+      <div class="site-card-actions">
+        <button class="secondary" data-site-test="${esc(site.id)}">Test connection</button>
+      </div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('[data-site-field]').forEach(input => {
+    input.addEventListener('input', (event) => {
+      const site = state.sites.find(item => item.id === event.target.dataset.siteId);
+      if (site) site[event.target.dataset.siteField] = event.target.value;
+    });
+  });
+
+  grid.querySelectorAll('[data-site-toggle]').forEach(input => {
+    input.addEventListener('change', (event) => {
+      const site = state.sites.find(item => item.id === event.target.dataset.siteToggle);
+      if (site) site.enabled = event.target.checked;
+    });
+  });
+
+  grid.querySelectorAll('[data-site-test]').forEach(button => {
+    button.addEventListener('click', () => testSite(button.dataset.siteTest));
+  });
+}
+
+async function loadSiteConfigs() {
+  try {
+    const data = await api('/api/v1/admin/site-configs');
+    state.sites = data.sites || [];
+    renderSiteConfigs();
+  } catch (err) {
+    $('siteConfigGrid').innerHTML = `<div class="error">${esc(err.message)}</div>`;
+  }
+}
+
+async function saveSiteConfigs() {
+  $('saveSettingsBtn').disabled = true;
+  $('saveSettingsBtn').textContent = 'Saving…';
+  try {
+    await api('/api/v1/admin/site-configs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sites: state.sites })
+    });
+    $('apiMessage').textContent = 'Saved site settings successfully.';
+  } catch (err) {
+    $('apiMessage').textContent = err.message;
+  } finally {
+    $('saveSettingsBtn').disabled = false;
+    $('saveSettingsBtn').textContent = 'Save all settings';
+  }
+}
+
+async function testSite(siteId) {
+  const site = state.sites.find(item => item.id === siteId);
+  if (!site) return;
+  const button = document.querySelector(`[data-site-test="${CSS.escape(siteId)}"]`);
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Testing…';
+  }
+
+  try {
+    const result = await api('/api/v1/admin/site-configs/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(site)
+    });
+    const message = result.reachable ? `Connected successfully (${result.http_status})` : `Connection failed: ${result.error}`;
+    $('apiMessage').textContent = `${site.name}: ${message}`;
+  } catch (err) {
+    $('apiMessage').textContent = `${site.name}: ${err.message}`;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = 'Test connection';
+    }
+  }
 }
 
 async function selectParcel(parcelId) {
@@ -95,5 +208,7 @@ async function runRounds() {
   finally { $('roundBtn').disabled = false; $('roundBtn').textContent = 'Run demo rounds'; }
 }
 
-$('connectBtn').addEventListener('click', connect); $('cellBtn').addEventListener('click', inspectCell); $('roundBtn').addEventListener('click', runRounds);
-$('cellId').addEventListener('keydown', e => { if (e.key === 'Enter') inspectCell(); }); connect();
+$('connectBtn').addEventListener('click', connect); $('cellBtn').addEventListener('click', inspectCell); $('roundBtn').addEventListener('click', runRounds); $('saveSettingsBtn').addEventListener('click', saveSiteConfigs);
+$('cellId').addEventListener('keydown', e => { if (e.key === 'Enter') inspectCell(); });
+loadSiteConfigs();
+connect();
