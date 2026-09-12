@@ -14,7 +14,9 @@ function statusLabel(status = '') { return status === 'available' ? 'Usable' : s
 function esc(value) { return String(value ?? '—').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 async function connect() {
-  state.api = $('apiBase').value.trim().replace(/\/$/, '');
+  const configuredApi = $('apiBase').value.trim();
+  state.api = configuredApi ? configuredApi.replace(/\/$/, '') : state.api;
+  $('apiBase').value = state.api;
   $('apiMessage').textContent = 'Connecting…'; $('apiDot').className = 'dot';
   try {
     await api('/health');
@@ -75,6 +77,7 @@ function renderSiteConfigs() {
       </div>
       <div class="site-card-actions">
         <button class="secondary" data-site-test="${esc(site.id)}">Test connection</button>
+        <button class="secondary danger" data-site-remove="${esc(site.id)}">Remove site</button>
       </div>
     </div>
   `).join('');
@@ -95,6 +98,10 @@ function renderSiteConfigs() {
 
   grid.querySelectorAll('[data-site-test]').forEach(button => {
     button.addEventListener('click', () => testSite(button.dataset.siteTest));
+  });
+
+  grid.querySelectorAll('[data-site-remove]').forEach(button => {
+    button.addEventListener('click', () => removeSite(button.dataset.siteRemove));
   });
 }
 
@@ -124,6 +131,26 @@ async function saveSiteConfigs() {
     $('saveSettingsBtn').disabled = false;
     $('saveSettingsBtn').textContent = 'Save all settings';
   }
+}
+
+function addSite() {
+  const nextIndex = state.sites.length + 1;
+  const id = `custom_site_${nextIndex}`;
+  state.sites.push({
+    id,
+    name: `Custom Site ${nextIndex}`,
+    base_url: 'http://localhost:8001',
+    api_key: '',
+    enabled: true,
+  });
+  renderSiteConfigs();
+  $('apiMessage').textContent = `Added ${id}. Save to persist it.`;
+}
+
+function removeSite(siteId) {
+  state.sites = state.sites.filter(site => site.id !== siteId);
+  renderSiteConfigs();
+  $('apiMessage').textContent = `Removed ${siteId}. Save to persist the change.`;
 }
 
 async function testSite(siteId) {
@@ -208,7 +235,7 @@ async function runRounds() {
   finally { $('roundBtn').disabled = false; $('roundBtn').textContent = 'Run demo rounds'; }
 }
 
-$('connectBtn').addEventListener('click', connect); $('cellBtn').addEventListener('click', inspectCell); $('roundBtn').addEventListener('click', runRounds); $('saveSettingsBtn').addEventListener('click', saveSiteConfigs);
+$('connectBtn').addEventListener('click', connect); $('cellBtn').addEventListener('click', inspectCell); $('roundBtn').addEventListener('click', runRounds); $('saveSettingsBtn').addEventListener('click', saveSiteConfigs); $('addSiteBtn').addEventListener('click', addSite);
 $('cellId').addEventListener('keydown', e => { if (e.key === 'Enter') inspectCell(); });
 loadSiteConfigs();
 connect();

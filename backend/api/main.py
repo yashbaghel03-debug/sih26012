@@ -34,13 +34,13 @@ ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(ENV_FILE)
 
 DEFAULT_SITE_CONFIGS = [
-    {"id": "land_records", "name": "Land Records / RoR", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
-    {"id": "registration", "name": "Property Registration", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
-    {"id": "planning_building", "name": "Planning & Building", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
-    {"id": "property_tax", "name": "Property Tax & Valuation", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
-    {"id": "utilities_infrastructure", "name": "Utilities & Infrastructure", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
-    {"id": "legal_encumbrance", "name": "Legal / Encumbrance", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
-    {"id": "citizen_land_services", "name": "Citizen Land Services", "base_url": "http://localhost:8000", "api_key": "", "enabled": True},
+    {"id": "land_records", "name": "Land Records / RoR", "base_url": "http://localhost:8001", "api_key": "", "enabled": True},
+    {"id": "registration", "name": "Property Registration", "base_url": "http://localhost:8001", "api_key": "", "enabled": True},
+    {"id": "planning_building", "name": "Planning & Building", "base_url": "http://localhost:8001", "api_key": "", "enabled": True},
+    {"id": "property_tax", "name": "Property Tax & Valuation", "base_url": "http://localhost:8001", "api_key": "", "enabled": True},
+    {"id": "utilities_infrastructure", "name": "Utilities & Infrastructure", "base_url": "http://localhost:8001", "api_key": "", "enabled": True},
+    {"id": "legal_encumbrance", "name": "Legal / Encumbrance", "base_url": "http://localhost:8001", "api_key": "", "enabled": True},
+    {"id": "citizen_land_services", "name": "Citizen Land Services", "base_url": "http://localhost:8001", "api_key": "", "enabled": True},
 ]
 
 app = FastAPI(title="SIH 2026 Parcel Assignment + WebGIS API", version="6.3.1", description="Hierarchical ALU indexing with PostGIS-backed India WebGIS and Pune mock-government integration.")
