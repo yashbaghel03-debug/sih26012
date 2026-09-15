@@ -1,7 +1,12 @@
 /* India WebGIS — responsive independent spatial-cell renderer. */
 (() => {
 'use strict';
-const API_BASE=new URLSearchParams(location.search).get('api')||'http://localhost:8000';
+const API_BASE=(()=>{
+  const queryApi=new URLSearchParams(location.search).get('api');
+  if(queryApi)return queryApi.replace(/\/$/,'');
+  if(location.hostname.endsWith('.app.github.dev'))return `https://${location.hostname.replace(/-\d+\.app\.github\.dev$/,'-8000.app.github.dev')}`;
+  return 'http://localhost:8000';
+})();
 // Broad initial viewport; the actual national boundary controls ALU clipping.
 const INDIA_VIEW_BOUNDS=[[6.0,66.0],[38.5,98.5]];
 const INDIA_CACHE='sih26012-official-india-boundary-v4';
