@@ -10,8 +10,6 @@
   const SOURCES={OSM:'OpenStreetMap geographic context',OSM_VANAZ:'OpenStreetMap-derived Vanaz Corner transport feature',PMRCL:'Maharashtra Metro Rail Corporation — Vanaz alignment / station documentation',UNION:'Union Bank public address reference — Pushpa Apt., Paud Road, Kothrud',MH:'Maharashtra Mahabhumi / Mahabhunakasha land-record services'};
   const API=(()=>{const q=new URLSearchParams(location.search).get('api');if(q)return q.replace(/\/$/,'');if(location.hostname.endsWith('.app.github.dev'))return `https://${location.hostname.replace(/-\d+\.app\.github\.dev$/,'-8000.app.github.dev')}`;return 'http://localhost:8000'})();
 
-  // Map-reading model for the SAME pilot footprint. These values are intentionally
-  // contextual/inferred from visible geography; they are not represented as official cadastral facts.
   function contextFor(row,col){
     const lat=PILOT_BOUNDS[0][0]+(PILOT_BOUNDS[1][0]-PILOT_BOUNDS[0][0])*(row+.5)/100;
     const lng=PILOT_BOUNDS[0][1]+(PILOT_BOUNDS[1][1]-PILOT_BOUNDS[0][1])*(col+.5)/100;
@@ -26,9 +24,9 @@
   const cellById=new Map(cells.map(c=>[c.alu_id,c]));
 
   const map=L.map('map',{zoomControl:true,minZoom:18,maxZoom:22,maxBounds:PILOT_BOUNDS,maxBoundsViscosity:1,center:KOTHRUD_CENTER,zoom:20});
-  const street=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,attribution:'Tiles © Esri'});
-  const physical=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'Tiles © Esri'});
-  const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,attribution:'Tiles © Esri'});
+  const street=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,attribution:'Tiles © Esri'});
+  const physical=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'Tiles © Esri'});
+  const satellite=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,attribution:'Tiles © Esri'});
   street.addTo(map);L.control.layers({'Street / GPS':street,'Physical / Terrain':physical,'Satellite':satellite},{},{collapsed:false,position:'topright'}).addTo(map);
   map.fitBounds(PILOT_BOUNDS,{padding:[0,0],animate:false});map.setMinZoom(map.getZoom());map.setMaxBounds(PILOT_BOUNDS);setTimeout(()=>map.invalidateSize({pan:false}),0);
 
@@ -42,8 +40,6 @@
   function fieldClass(s){return s==='N/D'?'red':s==='N/A'?'gray':s==='INFERRED'?'yellow':'green'}
   function valueHtml(f){if(f.status==='N/D')return '<span class="nd-value">N/D — not publicly verified</span>';if(f.status==='N/A')return '<span class="na-value">N/A — not applicable</span>';const tag=f.status==='INFERRED'?'<span style="display:inline-block;margin-top:6px;padding:2px 5px;border-radius:4px;background:#fff7cc;color:#806f24;font-size:7px;font-style:italic;font-weight:800;letter-spacing:.3px">MAP-INFERRED</span>':'';return `<span class="fictional-value">${esc(f.value)}</span>${tag}`}
 
-  // Field set is generated from what a judge can actually see in this fixed map.
-  // INFERRED = visual/geographic inference, not an official record.
   function fieldsFor(cell){
     const c=cell.context,transport=c.type==='transport',road=c.type==='road',mixed=c.type==='mixed';
     const fields=[
