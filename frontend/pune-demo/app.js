@@ -24,7 +24,7 @@
   const cellById=new Map(cells.map(c=>[c.alu_id,c]));
 
   const map=L.map('map',{zoomControl:true,minZoom:18,maxZoom:22,maxBounds:PILOT_BOUNDS,maxBoundsViscosity:1,center:KOTHRUD_CENTER,zoom:20});
-  const street=L.tileLayer('https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',{subdomains:['a','b','c'],maxZoom:22,maxNativeZoom:19,attribution:'© OpenStreetMap contributors'});
+  const street=L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',{subdomains:['a','b','c'],maxZoom:22,maxNativeZoom:20,attribution:'© OpenStreetMap contributors · OSM France'});
   const physical=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{subdomains:['a','b','c'],maxZoom:19,maxNativeZoom:17,attribution:'Map data © OpenStreetMap contributors, SRTM | Map style © OpenTopoMap (CC-BY-SA)'});
   const satellite=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,attribution:'Tiles © Esri'});
   street.addTo(map);L.control.layers({'Street / GPS':street,'Physical / Terrain':physical,'Satellite':satellite},{},{collapsed:false,position:'topright'}).addTo(map);
