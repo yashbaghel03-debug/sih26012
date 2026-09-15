@@ -8,7 +8,7 @@
   const PILOT_NAME='Vanaz Corner / Paud Road, Kothrud, Pune';
   const STATUS={GREEN:{cls:'green',label:'Green — 19–21 / 21 fields',color:'#22c55e'},YELLOW:{cls:'yellow',label:'Yellow — 15–18 / 21 fields',color:'#facc15'},RED:{cls:'red',label:'Red — fewer than 15 / 21 fields',color:'#ef4444'},WHITE:{cls:'white',label:'White — not searched',color:'#ffffff'}};
   const SOURCES={OSM:'OpenStreetMap geographic context',OSM_VANAZ:'OpenStreetMap-derived Vanaz Corner transport feature',PMRCL:'Maharashtra Metro Rail Corporation — Vanaz alignment / station documentation',UNION:'Union Bank public address reference — Pushpa Apt., Paud Road, Kothrud',MH:'Maharashtra Mahabhumi / Mahabhunakasha land-record services'};
-  const API=(()=>{const q=new URLSearchParams(location.search).get('api');if(q)return q.replace(/\/$/,'');if(location.hostname.endsWith('.app.github.dev'))return `https://${location.hostname.replace(/-\d+\.app\.github\.dev$/,'-8000.app.github.dev')}`;return 'http://localhost:8000'})();
+  const API=(()=>{const q=new URLSearchParams(location.search).get('api');if(q)return q.replace(/\/$/,'');if(location.hostname.endsWith('.app.github.dev'))return `https://${location.hostname.replace(/-\d+\.app.github.dev$/,'-8000.app.github.dev')}`;return 'http://localhost:8000'})();
 
   function contextFor(row,col){
     const lat=PILOT_BOUNDS[0][0]+(PILOT_BOUNDS[1][0]-PILOT_BOUNDS[0][0])*(row+.5)/100;
@@ -24,8 +24,8 @@
   const cellById=new Map(cells.map(c=>[c.alu_id,c]));
 
   const map=L.map('map',{zoomControl:true,minZoom:18,maxZoom:22,maxBounds:PILOT_BOUNDS,maxBoundsViscosity:1,center:KOTHRUD_CENTER,zoom:20});
-  const street=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,attribution:'Tiles © Esri'});
-  const physical=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'Tiles © Esri'});
+  const street=L.tileLayer('https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',{subdomains:['a','b','c'],maxZoom:22,maxNativeZoom:19,attribution:'© OpenStreetMap contributors'});
+  const physical=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{subdomains:['a','b','c'],maxZoom:19,maxNativeZoom:17,attribution:'Map data © OpenStreetMap contributors, SRTM | Map style © OpenTopoMap (CC-BY-SA)'});
   const satellite=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,attribution:'Tiles © Esri'});
   street.addTo(map);L.control.layers({'Street / GPS':street,'Physical / Terrain':physical,'Satellite':satellite},{},{collapsed:false,position:'topright'}).addTo(map);
   map.fitBounds(PILOT_BOUNDS,{padding:[0,0],animate:false});map.setMinZoom(map.getZoom());map.setMaxBounds(PILOT_BOUNDS);setTimeout(()=>map.invalidateSize({pan:false}),0);
@@ -79,9 +79,9 @@
   function showDetails(id){const cell=cellById.get(id);if(cell)openModal(cell)}
   const hover=L.DomUtil.create('div','pune-hover-tooltip');hover.style.display='none';document.body.appendChild(hover);
   function positionHover(e){hover.style.left=`${e.clientX+14}px`;hover.style.top=`${e.clientY+14}px`}
-  function updateHover(e){const cell=cellAt(map.containerPointToLatLng([e.offsetX,e.offsetY]));if(!cell){hover.style.display='none';return}const {resolved}=fieldsFor(cell);positionHover(e);hover.style.display='block';hover.innerHTML=`<div class="pune-hover-title">ALU ID</div><strong>${esc(cell.alu_id)}</strong><div class="pune-hover-row"><span>Context</span><b>${esc(cell.context.label)}</b></div><div class="pune-hover-row"><span>Resolved</span><b>${resolved}/21</b></div>`}
-  map.getContainer().addEventListener('mousemove',updateHover);map.getContainer().addEventListener('mouseleave',()=>{hover.style.display='none'});canvas.addEventListener('click',e=>{const cell=cellAt(map.containerPointToLatLng([e.offsetX,e.offsetY]));if(cell)showDetails(cell.alu_id)});
-  const searchHint=document.getElementById('puneSearchHint');
-  document.getElementById('puneSearchForm')?.addEventListener('submit',e=>{e.preventDefault();const q=document.getElementById('puneAluSearch').value.trim().toUpperCase(),cell=cellById.get(q);if(!cell){if(searchHint)searchHint.textContent='ALU not found in the 10,000-cell Pune pilot catalog.';return}const lat=PILOT_BOUNDS[0][0]+(PILOT_BOUNDS[1][0]-PILOT_BOUNDS[0][0])*(cell.row+.5)/100,lng=PILOT_BOUNDS[0][1]+(PILOT_BOUNDS[1][1]-PILOT_BOUNDS[0][1])*(cell.col+.5)/100;map.setView([lat,lng],20,{animate:true});const {resolved}=fieldsFor(cell);if(searchHint)searchHint.textContent=`${cell.alu_id} · ${resolved}/21 fields resolved`;showDetails(cell.alu_id)});
-  scheduleDraw();void API;
+  function updateHover(e){const cell=cellAt(map.containerPointToLatLng([e.offsetX,e.offsetY]));if(!cell){hover.style.display='none';return}hover.innerHTML=`<b>${esc(cell.alu_id)}</b><br>${esc(cell.context.label)}<br><span>0/21 fields before search</span>`;hover.style.display='block';positionHover(e)}
+  map.on('mousemove',updateHover);map.on('mouseout',()=>{hover.style.display='none'});map.on('click',e=>{const cell=cellAt(e.latlng);if(cell)openModal(cell)});
+  const form=document.getElementById('puneSearchForm'),input=document.getElementById('puneAluSearch'),hint=document.getElementById('puneSearchHint');
+  if(form)form.addEventListener('submit',e=>{e.preventDefault();const id=input.value.trim().toUpperCase(),cell=cellById.get(id);if(cell){hint.textContent=`Found ${id}. Opening the linked fictional record.`;openModal(cell)}else hint.textContent='ALU not found in this 100×100 Pune pilot grid.'});
+  scheduleDraw();
 })();
