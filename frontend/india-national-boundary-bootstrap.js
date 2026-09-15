@@ -25,7 +25,34 @@
     };
   }
 
+  function installBasemapFallback() {
+    // The legacy Esri World Street/Topo raster services used by map.js are
+    // no longer reliable. Keep map.js unchanged and transparently redirect
+    // only those two layers to active OSM-derived raster sources.
+    const originalTileLayer = L.tileLayer.bind(L);
+    L.tileLayer = (url, options = {}) => {
+      if (url.includes('/World_Street_Map/MapServer/tile/')) {
+        return originalTileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+          ...options,
+          subdomains: ['a', 'b', 'c'],
+          maxNativeZoom: 20,
+          attribution: '© OpenStreetMap contributors · OSM France'
+        });
+      }
+      if (url.includes('/World_Topo_Map/MapServer/tile/')) {
+        return originalTileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+          ...options,
+          subdomains: ['a', 'b', 'c'],
+          maxNativeZoom: 17,
+          attribution: 'Map data © OpenStreetMap contributors, SRTM | Map style © OpenTopoMap (CC-BY-SA)'
+        });
+      }
+      return originalTileLayer(url, options);
+    };
+  }
+
   function loadMap() {
+    installBasemapFallback();
     const integration = document.createElement('script');
     integration.src = 'pune-coverage-integration.js?v=20260909c';
     integration.defer = false;
